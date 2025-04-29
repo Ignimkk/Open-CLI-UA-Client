@@ -33,10 +33,18 @@ async def browse_node(client: Client, node_id: Optional[str] = None) -> List[Nod
         children = await node.get_children()
         for child in children:
             name = await child.read_browse_name()
-            logger.info(f"Node: {name}, ID: {child.nodeid}")
+            # NodeId 문자열이 너무 길거나 바이너리 데이터를 포함할 수 있으므로 간결하게 표시
+            node_id_str = str(child.nodeid)
+            if len(node_id_str) > 50:
+                node_id_str = f"{node_id_str[:30]}...{node_id_str[-10:]}"
+            logger.info(f"Node: {name.Name}, ID: {node_id_str}")
         return children
     except Exception as e:
-        logger.error(f"Failed to browse node: {e}")
+        # 예외 메시지 간결화
+        err_msg = str(e)
+        if len(err_msg) > 100:
+            err_msg = f"{err_msg[:100]}... [내용 생략]"
+        logger.error(f"Failed to browse node: {err_msg}")
         return []
 
 

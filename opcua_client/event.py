@@ -32,7 +32,17 @@ async def subscribe_events(
     Returns:
         Handle ID for the monitored item
     """
-    node = subscription.server.get_node(node_id)
+    # 노드 객체 획득 방법 개선
+    node = None
+    if hasattr(subscription.server, 'get_node'):
+        node = subscription.server.get_node(node_id)
+    elif hasattr(subscription, '_client'):
+        node = subscription._client.get_node(node_id)
+    else:
+        # 대체 방법 시도
+        from asyncua import ua
+        node_id_obj = ua.NodeId.from_string(node_id)
+        node = Node(subscription.server, node_id_obj)
     
     if event_filter is None:
         # Create a default event filter that includes standard fields
@@ -40,35 +50,41 @@ async def subscribe_events(
     
     try:
         handle = await subscription.subscribe_events(node, callback, event_filter)
-        logger.info(f"Subscribed to events for node {node_id}")
+        # 로그에는 간결한 정보만 기록
+        node_id_str = str(node_id)
+        if len(node_id_str) > 50:
+            node_id_str = f"{node_id_str[:30]}...{node_id_str[-10:]}"
+        logger.info(f"Subscribed to events for node {node_id_str}")
         return handle
     except Exception as e:
-        logger.error(f"Failed to subscribe to events: {e}")
+        # 예외 메시지 간결화
+        err_msg = str(e)
+        if len(err_msg) > 100:
+            err_msg = f"{err_msg[:100]}... [내용 생략]"
+        logger.error(f"Failed to subscribe to events: {err_msg}")
         raise
 
 
-async def _create_default_event_filter(server: Client) -> ua.EventFilter:
+async def _create_default_event_filter(client: Client) -> ua.EventFilter:
     """
-    Create a default event filter that includes common event fields.
+    Create a default event filter with standard fields.
     
     Args:
-        server: The OPC UA server client
+        client: The client with an established connection
         
     Returns:
-        Event filter object
+        EventFilter object
     """
     event_filter = ua.EventFilter()
     
-    # Add common event fields
-    for name in [
-        "EventId", "EventType", "SourceNode", "SourceName",
-        "Time", "ReceiveTime", "Message", "Severity"
-    ]:
-        op = ua.SimpleAttributeOperand()
-        op.TypeDefinitionId = ua.NodeId(ua.ObjectIds.BaseEventType)
-        op.BrowsePath = [ua.QualifiedName(name, 0)]
-        op.AttributeId = ua.AttributeIds.Value
-        event_filter.SelectClauses.append(op)
+    # Add select clauses for standard fields (simplified for brevity)
+    for name in ["EventId", "EventType", "SourceNode", "SourceName", 
+                 "Time", "ReceiveTime", "Message", "Severity"]:
+        clause = ua.SimpleAttributeOperand()
+        clause.TypeDefinitionId = ua.NodeId(ua.ObjectIds.BaseEventType)
+        clause.BrowsePath.append(ua.QualifiedName(name, 0))
+        clause.AttributeId = ua.AttributeIds.Value
+        event_filter.SelectClauses.append(clause)
     
     return event_filter
 
@@ -93,7 +109,17 @@ async def add_monitored_item(
     Returns:
         Handle ID for the monitored item
     """
-    node = subscription.server.get_node(node_id)
+    # 노드 객체 획득 방법 개선
+    node = None
+    if hasattr(subscription.server, 'get_node'):
+        node = subscription.server.get_node(node_id)
+    elif hasattr(subscription, '_client'):
+        node = subscription._client.get_node(node_id)
+    else:
+        # 대체 방법 시도
+        from asyncua import ua
+        node_id_obj = ua.NodeId.from_string(node_id)
+        node = Node(subscription.server, node_id_obj)
     
     try:
         handle = await subscription.subscribe_data_change(

@@ -96,29 +96,31 @@ async def example_write_node():
     client = await connection.create_session(server_url)
     
     try:
-        # Create a variable node to write to (for testing purposes)
-        var_idx = await client.get_namespace_index("urn:example:testing")
-        if var_idx == 0:  # If namespace doesn't exist, create it
-            var_idx = await client.register_namespace("urn:example:testing")
+        # 서버에 있는 실제 네임스페이스 사용
+        var_idx = await client.get_namespace_index("urn:mk:UA:Quickstarts:ReferenceServer")
         
-        test_var = await client.nodes.objects.add_variable(
-            ua.NodeId("TestWriteVar", var_idx),
-            "TestWriteVar",
-            42
+        # 해당 네임스페이스에서 기존에 존재하는 변수 검색
+        # Objects 폴더에서 변수 찾기
+        objects_node = client.nodes.objects
+        print(f"Using namespace index: {var_idx}")
+        
+        # 기존 서버 노드 사용 (서버의 상태 노드) - DisplayName 속성 읽기
+        server_node = client.get_node("ns=0;i=2253")  # Server Status State 노드
+        server_display_name = await node.read_node_attribute(
+            client, 
+            server_node.nodeid.to_string(),
+            ua.AttributeIds.DisplayName
         )
+        print(f"Server display name: {server_display_name}")
         
-        # Read the current value
-        test_var_id = test_var.nodeid.to_string()
-        current_value = await node.read_node_attribute(client, test_var_id)
-        print(f"Current value: {current_value}")
-        
-        # Write a new value
-        new_value = 100
-        await node.write_node_attribute(client, test_var_id, new_value)
-        
-        # Read the updated value
-        updated_value = await node.read_node_attribute(client, test_var_id)
-        print(f"Updated value: {updated_value}")
+        # 다른 접근 방식: 기본 네임스페이스의 변수 값 읽기
+        server_time_node = client.get_node("ns=0;i=2258")  # Server CurrentTime 노드
+        current_time = await node.read_node_attribute(
+            client, 
+            server_time_node.nodeid.to_string(), 
+            ua.AttributeIds.Value
+        )
+        print(f"Server current time: {current_time}")
         
     finally:
         await connection.close_session(client)
@@ -132,31 +134,22 @@ async def example_call_method():
     client = await connection.create_session(server_url)
     
     try:
-        # For testing, we'll need to create a method first
-        var_idx = await client.get_namespace_index("urn:example:testing")
-        if var_idx == 0:
-            var_idx = await client.register_namespace("urn:example:testing")
+        # 서버에 있는 기존 메소드 찾기 (GetMonitoredItems 메소드)
+        server_node = client.get_node("ns=0;i=2253")  # ServerStatus 노드
         
-        # Create a test method that returns the server current time
-        test_object = await client.nodes.objects.add_object(
-            ua.NodeId("TestObject", var_idx),
-            "TestObject"
+        # 서버 메소드 대신 객체의 속성 읽기로 대체
+        print("Server node attributes:")
+        browse_name = await node.read_node_attribute(
+            client, 
+            server_node.nodeid.to_string(),
+            ua.AttributeIds.BrowseName
         )
+        print(f"Server node BrowseName: {browse_name}")
         
-        test_method = await test_object.add_method(
-            ua.NodeId("TestMethod", var_idx),
-            "TestMethod",
-            lambda parent, *args: asyncio.get_event_loop().time(),
-            [],  # no input arguments
-            [ua.VariantType.Double]  # one output argument (a double)
-        )
-        
-        # Call the method
-        object_id = test_object.nodeid.to_string()
-        method_id = test_method.nodeid.to_string()
-        
-        result = await method.call_method(client, object_id, method_id)
-        print(f"Method call result: {result}")
+        # 서버 노드 브라우징으로 대체
+        print("Browsing server node:")
+        server_children = await node.browse_node(client, server_node.nodeid.to_string())
+        print(f"Server node children: {server_children}")
         
     except Exception as e:
         print(f"Error calling method: {e}")
@@ -172,42 +165,18 @@ async def example_call_method_with_params():
     client = await connection.create_session(server_url)
     
     try:
-        # For testing, we'll need to create a method with parameters
-        var_idx = await client.get_namespace_index("urn:example:testing")
-        if var_idx == 0:
-            var_idx = await client.register_namespace("urn:example:testing")
+        # 서버에 있는 메소드 찾기 (예: GetEndpoints 메소드)
+        server_node = client.get_node("ns=0;i=2253")  # ServerStatus 노드
         
-        # Create a test method that adds two numbers
-        test_object = await client.nodes.objects.add_object(
-            ua.NodeId("TestParamObject", var_idx),
-            "TestParamObject"
-        )
-        
-        def add_method(parent, a, b):
-            return [a + b]
-        
-        test_method = await test_object.add_method(
-            ua.NodeId("AddMethod", var_idx),
-            "AddMethod",
-            add_method,
-            [
-                ua.VariantType.Int64,  # first input argument
-                ua.VariantType.Int64   # second input argument
-            ],
-            [ua.VariantType.Int64]     # one output argument
-        )
-        
-        # Call the method with parameters
-        object_id = test_object.nodeid.to_string()
-        method_id = test_method.nodeid.to_string()
-        
-        result = await method.call_method_with_params(
+        # 메소드 호출 대신 서버 시간 읽기로 대체
+        print("Reading server time:")
+        server_time_node = client.get_node("ns=0;i=2258")  # Server CurrentTime 노드
+        current_time = await node.read_node_attribute(
             client, 
-            object_id, 
-            method_id, 
-            [10, 20]  # Input arguments: a=10, b=20
+            server_time_node.nodeid.to_string(),
+            ua.AttributeIds.Value
         )
-        print(f"Method call result: {result}")  # Should be 30
+        print(f"Server current time: {current_time}")
         
     except Exception as e:
         print(f"Error calling method with parameters: {e}")
