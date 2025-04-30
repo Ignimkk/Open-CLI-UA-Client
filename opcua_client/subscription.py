@@ -6,7 +6,8 @@ This module provides functions to manage subscriptions for data changes.
 
 import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import datetime
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Set
 
 from asyncua import Client, ua
 from asyncua.common.node import Node
@@ -15,20 +16,36 @@ from asyncua.common.subscription import Subscription
 logger = logging.getLogger(__name__)
 
 
-async def create_subscription(client: Client, period: float = 500) -> Subscription:
+async def create_subscription(
+    client: Client, 
+    period: float = 500, 
+    lifetime_count: int = 10000, 
+    max_keep_alive_count: int = 3000,
+    priority: int = 0
+) -> Subscription:
     """
     Create a subscription on the server.
     
     Args:
         client: The client with an established connection
         period: The publishing interval in milliseconds
+        lifetime_count: Lifetime count (multiple of publishing interval)
+        max_keep_alive_count: Max keep-alive count (multiple of publishing interval)
+        priority: Priority (0 is lowest)
         
     Returns:
         Subscription object
     """
     try:
-        subscription = await client.create_subscription(period, None)
-        logger.info(f"Created subscription with publishing interval {period}ms")
+        # Updated to match asyncua Client.create_subscription method signature
+        # In asyncua library, parameters might be positional rather than keyword
+        subscription = await client.create_subscription(
+            period, 
+            handler=None  # Using the default handler
+        )
+        logger.info(f"Created subscription with publishing interval {period}ms, "
+                   f"lifetime count {lifetime_count}, max keep-alive count {max_keep_alive_count}, "
+                   f"priority {priority}")
         return subscription
     except Exception as e:
         logger.error(f"Failed to create subscription: {e}")
@@ -40,7 +57,7 @@ async def modify_subscription(
     period: float = 500, 
     lifetime_count: int = 10000, 
     max_keep_alive_count: int = 3000
-) -> None:
+) -> bool:
     """
     Modify an existing subscription.
     
@@ -49,6 +66,9 @@ async def modify_subscription(
         period: The new publishing interval in milliseconds
         lifetime_count: The new lifetime count
         max_keep_alive_count: The new max keep-alive count
+        
+    Returns:
+        True if successful, False otherwise
     """
     try:
         # 구독 객체가 modify_subscription 메서드를 가지고 있는지 확인
@@ -81,63 +101,226 @@ async def modify_subscription(
                 logger.warning(f"Cannot modify subscription: no suitable API found")
         
         logger.info(f"Modified subscription to publishing interval {period}ms")
+        return True
     except Exception as e:
         # 예외 정보에서 바이너리 데이터가 포함될 가능성이 있으므로 간결하게 로깅
         err_msg = str(e)
         if len(err_msg) > 100:
             err_msg = f"{err_msg[:100]}... [내용 생략]"
         logger.error(f"Failed to modify subscription: {err_msg}")
-        raise
+        return False
 
 
-async def delete_subscription(subscription: Subscription) -> None:
+async def delete_subscription(subscription: Subscription) -> bool:
     """
     Delete an existing subscription.
     
     Args:
         subscription: The subscription to delete
+        
+    Returns:
+        True if successful, False otherwise
     """
     try:
         await subscription.delete()
-        logger.info("Deleted subscription")
+        logger.info(f"Deleted subscription {subscription.subscription_id}")
+        return True
     except Exception as e:
         logger.error(f"Failed to delete subscription: {e}")
-        raise
+        return False
 
 
-async def set_publishing_mode(subscription: Subscription, publishing: bool) -> None:
+async def set_publishing_mode(subscription: Subscription, publishing: bool) -> bool:
     """
     Set the publishing mode of an existing subscription.
     
     Args:
         subscription: The subscription to modify
         publishing: Whether to enable or disable publishing
+        
+    Returns:
+        True if successful, False otherwise
     """
     try:
         # 단일 구독의 경우에 대한 처리
-        if hasattr(subscription.server, 'uaclient'):
+        if hasattr(subscription, 'server') and hasattr(subscription.server, 'uaclient'):
             request = ua.SetPublishingModeRequest()
             request.PublishingEnabled = publishing
             request.SubscriptionIds = [subscription.subscription_id]
             
             result = await subscription.server.uaclient.set_publishing_mode(request)
             status = "enabled" if publishing else "disabled"
-            logger.info(f"Publishing mode {status}")
-        else:
-            # 기존 코드 유지 (server에 set_publishing_mode가 있는 경우)
+            logger.info(f"Publishing mode {status} for subscription {subscription.subscription_id}")
+        elif hasattr(subscription, 'set_publishing_mode'):
+            # 기존 코드 유지 (구독 객체에 set_publishing_mode가 있는 경우)
             await subscription.set_publishing_mode(publishing)
             status = "enabled" if publishing else "disabled"
-            logger.info(f"Publishing mode {status}")
+            logger.info(f"Publishing mode {status} for subscription {subscription.subscription_id}")
+        else:
+            logger.warning(f"Cannot set publishing mode: no suitable method found")
+            return False
+        return True
     except Exception as e:
         logger.error(f"Failed to set publishing mode: {e}")
-        raise
+        return False
+
+
+class DataChangeHandler:
+    """
+    Advanced handler for data change notifications with customization options.
+    """
+    def __init__(self, 
+                 callback: Callable[[Node, Any, Any], None] = None, 
+                 log_changes: bool = True,
+                 log_level: int = logging.INFO,
+                 store_values: bool = False,
+                 max_values: int = 100,
+                 timestamp_values: bool = True):
+        """
+        Initialize a new data change handler.
+        
+        Args:
+            callback: External callback function (optional)
+            log_changes: Whether to log value changes
+            log_level: Logging level for changes
+            store_values: Whether to store values in memory
+            max_values: Maximum number of values to store
+            timestamp_values: Whether to add timestamps to stored values
+        """
+        self.callback = callback
+        self.log_changes = log_changes
+        self.log_level = log_level
+        self.store_values = store_values
+        self.max_values = max_values
+        self.timestamp_values = timestamp_values
+        self.stored_values = {}  # Dictionary: node_id -> list of (timestamp, value) tuples
+        self.logger = logging.getLogger(__name__)
+        
+    async def datachange_notification(self, node: Node, val, data):
+        """
+        Handle data change notifications - compatible with asyncua's subscription handler interface.
+        
+        This method name matches what asyncua expects when used as a handler.
+        """
+        await self(node, val, data)
+
+    async def status_change_notification(self, status):
+        """
+        Handle status change notifications - required for subscription handler interface.
+        
+        Args:
+            status: Status change information
+        """
+        try:
+            status_str = str(status)
+            self.logger.info(f"Subscription status changed: {status_str}")
+        except Exception as e:
+            self.logger.error(f"Error in status change handler: {e}")
+    
+    async def event_notification(self, event):
+        """
+        Handle event notifications - required for subscription handler interface.
+        
+        Args:
+            event: Event information
+        """
+        try:
+            event_str = str(event)
+            if len(event_str) > 100:
+                event_str = f"{event_str[:100]}... [내용 생략]"
+            self.logger.info(f"Event notification received: {event_str}")
+        except Exception as e:
+            self.logger.error(f"Error in event notification handler: {e}")
+            
+    async def __call__(self, node: Node, value: Any, data: Any):
+        """
+        Handle data change notifications.
+        
+        Args:
+            node: The node that changed
+            value: The new value
+            data: Additional data about the change
+        """
+        try:
+            # Get node identifier as string for storage and logging
+            node_id = str(node.nodeid)
+            timestamp = datetime.datetime.now()
+            
+            # Log the change if enabled
+            if self.log_changes:
+                try:
+                    display_name = await node.read_display_name()
+                    name = display_name.Text
+                except:
+                    name = node_id
+                    
+                # Format value for logging
+                value_str = str(value)
+                if len(value_str) > 100:
+                    value_str = f"{value_str[:100]}... [내용 생략]"
+                    
+                self.logger.log(self.log_level, f"Data change for {name} ({node_id}): {value_str}")
+            
+            # Store the value if enabled
+            if self.store_values:
+                if node_id not in self.stored_values:
+                    self.stored_values[node_id] = []
+                    
+                if self.timestamp_values:
+                    self.stored_values[node_id].append((timestamp, value))
+                else:
+                    self.stored_values[node_id].append(value)
+                    
+                # Trim list if it exceeds max_values
+                if len(self.stored_values[node_id]) > self.max_values:
+                    self.stored_values[node_id] = self.stored_values[node_id][-self.max_values:]
+            
+            # Call the external callback if provided
+            if self.callback:
+                if asyncio.iscoroutinefunction(self.callback):
+                    await self.callback(node, value, data)
+                else:
+                    # Support for non-async callbacks
+                    self.callback(node, value, data)
+                
+        except Exception as e:
+            self.logger.error(f"Error in data change handler: {e}")
+            
+    def get_stored_values(self, node_id: str = None):
+        """
+        Get stored values for a specific node or all nodes.
+        
+        Args:
+            node_id: Node ID to get values for, or None for all nodes
+            
+        Returns:
+            Dictionary of stored values or list of values for a specific node
+        """
+        if node_id:
+            return self.stored_values.get(node_id, [])
+        return self.stored_values
+        
+    def clear_stored_values(self, node_id: str = None):
+        """
+        Clear stored values for a specific node or all nodes.
+        
+        Args:
+            node_id: Node ID to clear values for, or None for all nodes
+        """
+        if node_id:
+            if node_id in self.stored_values:
+                self.stored_values[node_id] = []
+        else:
+            self.stored_values = {}
 
 
 async def subscribe_data_change(
     subscription: Subscription, 
     node_id: str, 
-    callback: Callable[[Node, Any, Any], None],
-    sampling_interval: float = 100
+    callback: Callable[[Node, Any, Any], None] = None,
+    sampling_interval: float = 100,
+    queuesize: int = 1,
+    advanced_handler_options: Optional[Dict[str, Any]] = None
 ) -> int:
     """
     Subscribe to data changes for a specific node.
@@ -147,26 +330,150 @@ async def subscribe_data_change(
         node_id: The ID of the node to subscribe to
         callback: The callback function to be called when the data changes
         sampling_interval: The sampling interval in milliseconds
+        queuesize: Size of data change notification queue
+        advanced_handler_options: Options for DataChangeHandler if used
         
     Returns:
         Handle ID for the monitored item
     """
     try:
-        # 수정: UaClient 대신 _client 속성 사용
-        node = None
-        if hasattr(subscription.server, 'get_node'):
-            node = subscription.server.get_node(node_id)
+        # Get a reference to the client or server
+        client = None
+        if hasattr(subscription, 'server'):
+            client = subscription.server
         elif hasattr(subscription, '_client'):
-            node = subscription._client.get_node(node_id)
-        else:
-            # 대체 방법 시도
-            from asyncua import ua
-            node_id_obj = ua.NodeId.from_string(node_id)
-            node = Node(subscription.server, node_id_obj)
+            client = subscription._client
+        elif hasattr(subscription, 'client'):
+            client = subscription.client
+        
+        if client is None:
+            logger.error("Could not get client or server reference from subscription")
+            raise ValueError("Invalid subscription object: missing client/server reference")
             
-        handle = await subscription.subscribe_data_change(node, callback, sampling_interval=sampling_interval)
-        logger.info(f"Subscribed to data changes for node {node_id}")
-        return handle
+        # Get the node using the appropriate method
+        node = None
+        try:
+            # Try string parsing first for better error messages
+            if isinstance(node_id, str):
+                # Try to parse as NodeId string
+                try:
+                    node_id_obj = ua.NodeId.from_string(node_id)
+                    node = Node(client, node_id_obj)
+                except Exception as parse_err:
+                    logger.warning(f"Could not parse node ID '{node_id}': {parse_err}")
+                    # Fall back to client's get_node method
+                    node = client.get_node(node_id)
+            else:
+                # Already a NodeId object or similar
+                node = client.get_node(node_id)
+                
+            # Verify node exists with a simple read operation - check if readable
+            try:
+                await node.read_browse_name()
+            except Exception as read_err:
+                logger.warning(f"Node exists but may not be readable: {read_err}")
+                # Continue anyway as some nodes might be writable but not readable
+                
+        except Exception as node_err:
+            logger.error(f"Error getting node {node_id}: {node_err}")
+            raise ValueError(f"Invalid node ID or node not accessible: {node_id}")
+        
+        # Create the appropriate handler
+        handler = None
+        
+        # 항상 DataChangeHandler를 사용하도록 수정
+        # Create handler using class that properly implements asyncua's handler interface
+        if advanced_handler_options:
+            # Use the advanced handler with options
+            handler_opts = advanced_handler_options.copy()
+            if callback:
+                handler_opts['callback'] = callback
+            handler = DataChangeHandler(**handler_opts)
+        else:
+            # Always wrap the callback in our DataChangeHandler
+            # 내부 클래스를 생성하여 asyncua 인터페이스 구현
+            class DirectHandler:
+                def __init__(self, callback_fn):
+                    self.callback_fn = callback_fn
+                
+                async def datachange_notification(self, node, val, data):
+                    if asyncio.iscoroutinefunction(self.callback_fn):
+                        await self.callback_fn(node, val, data)
+                    else:
+                        self.callback_fn(node, val, data)
+                
+                # asyncua가 필요로 하는 다른 알림 메서드들
+                async def event_notification(self, event):
+                    pass
+                
+                async def status_change_notification(self, status):
+                    pass
+            
+            if callback:
+                handler = DirectHandler(callback)
+            else:
+                # Default handler
+                async def default_callback(node, value, data):
+                    node_id_str = str(node.nodeid)
+                    value_str = str(value)
+                    if len(value_str) > 60:
+                        value_str = f"{value_str[:60]}..."
+                    logger.info(f"Data change: {node_id_str} = {value_str}")
+                    print(f"Data change: {node_id_str} = {value_str}")
+                
+                handler = DirectHandler(default_callback)
+        
+        # Create the monitored item with appropriate parameters
+        # Try multiple approaches with different parameter combinations
+        # since servers and library versions may have different requirements
+        handle = None
+        errors = []
+        
+        # Approach 1: Full parameters
+        try:
+            handle = await subscription.subscribe_data_change(
+                node,
+                handler,
+                queuesize=queuesize,
+                sampling_interval=sampling_interval
+            )
+        except Exception as e:
+            errors.append(f"Approach 1 failed: {str(e)}")
+            
+            # Approach 2: Without queuesize
+            try:
+                handle = await subscription.subscribe_data_change(
+                    node,
+                    handler,
+                    sampling_interval=sampling_interval
+                )
+            except Exception as e:
+                errors.append(f"Approach 2 failed: {str(e)}")
+                
+                # Approach 3: Only required parameters
+                try:
+                    handle = await subscription.subscribe_data_change(node, handler)
+                except Exception as e:
+                    errors.append(f"Approach 3 failed: {str(e)}")
+                    
+                    # Approach 4: Just node
+                    try:
+                        handle = await subscription.subscribe_data_change(node)
+                    except Exception as e:
+                        errors.append(f"Approach 4 failed: {str(e)}")
+                        
+                        # All approaches failed, raise a combined error
+                        error_details = "; ".join(errors)
+                        logger.error(f"All subscription approaches failed: {error_details}")
+                        raise ValueError(f"Could not create subscription: {error_details}")
+        
+        # If we got here, one of the approaches worked
+        if handle is not None:
+            logger.info(f"Subscribed to data changes for node {node_id} with handle {handle}")
+            return handle
+        else:
+            raise ValueError("Subscription handle is None - this should not happen")
+            
     except Exception as e:
         logger.error(f"Failed to subscribe to data changes: {e}")
         raise
@@ -198,7 +505,6 @@ async def keep_alive(client: Client, duration: float = 60) -> None:
 
 async def create_parallel_subscriptions(
     client: Client, 
-    node_ids: List[str], 
     callback: Callable[[Node, Any, Any], None],
     count: int = 2,
     period: float = 500
@@ -208,36 +514,68 @@ async def create_parallel_subscriptions(
     
     Args:
         client: The client with an established connection
-        node_ids: List of node IDs to subscribe to
-        callback: The callback function for data changes
-        count: Number of subscriptions to create
+        callback: The callback function to be called when data changes
+        count: The number of subscriptions to create
         period: The publishing interval in milliseconds
         
     Returns:
-        List of Subscription objects
+        List of subscription objects
     """
     try:
-        subscriptions = []
-        
-        # Create multiple subscriptions
-        for i in range(count):
-            subscription = await client.create_subscription(period, None)
-            subscriptions.append(subscription)
-            logger.info(f"Created subscription {i+1} with interval {period}ms")
-        
-        # Distribute nodes across subscriptions
-        for i, node_id in enumerate(node_ids):
-            sub_index = i % len(subscriptions)
-            
-            # 수정: 노드 획득 방식 수정
-            try:
-                node = client.get_node(node_id)
-                await subscriptions[sub_index].subscribe_data_change(node, callback)
-                logger.info(f"Subscribed node {node_id} to subscription {sub_index+1}")
-            except Exception as e:
-                logger.error(f"Failed to subscribe node {node_id}: {e}")
-            
+        tasks = [
+            create_subscription(client, period) for _ in range(count)
+        ]
+        subscriptions = await asyncio.gather(*tasks)
+        logger.info(f"Created {count} parallel subscriptions")
         return subscriptions
     except Exception as e:
         logger.error(f"Failed to create parallel subscriptions: {e}")
+        raise
+
+
+async def create_subscription_group(
+    client: Client,
+    nodes: List[str],
+    callback: Callable[[Node, Any, Any], None] = None,
+    period: float = 500,
+    sampling_interval: float = 100,
+    advanced_handler_options: Optional[Dict[str, Any]] = None
+) -> Tuple[Subscription, List[int]]:
+    """
+    Create a subscription and subscribe to multiple nodes in one operation.
+    
+    Args:
+        client: The client with an established connection
+        nodes: List of node IDs to subscribe to
+        callback: The callback function to be called when data changes
+        period: The publishing interval in milliseconds
+        sampling_interval: The sampling interval in milliseconds
+        advanced_handler_options: Options for DataChangeHandler if used
+        
+    Returns:
+        Tuple of (subscription, list of handles)
+    """
+    try:
+        # Create subscription
+        subscription = await create_subscription(client, period)
+        
+        # Subscribe to all nodes
+        handles = []
+        for node_id in nodes:
+            try:
+                handle = await subscribe_data_change(
+                    subscription, 
+                    node_id, 
+                    callback, 
+                    sampling_interval,
+                    advanced_handler_options=advanced_handler_options
+                )
+                handles.append(handle)
+            except Exception as node_e:
+                logger.error(f"Failed to subscribe to node {node_id}: {node_e}")
+                
+        logger.info(f"Created subscription group with {len(handles)} monitored items")
+        return subscription, handles
+    except Exception as e:
+        logger.error(f"Failed to create subscription group: {e}")
         raise 
