@@ -43,10 +43,18 @@ from opcua_app_handlers import (
 )
 
 # 로깅 설정 (바이너리 데이터 필터링 포함)
-utils.setup_logging(logging.INFO)
+utils.setup_logging(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 DEFAULT_SERVER_URL = "opc.tcp://mk:62541/Quickstarts/ReferenceServer"
+
+# 전역 변수로 현재 연결된 클라이언트 저장
+current_client_connection = None
+
+def get_current_connection():
+    """현재 연결된 클라이언트를 반환합니다."""
+    global current_client_connection
+    return current_client_connection
 
 async def display_menu():
     print("\n===== OPC UA Client Application =====")
@@ -67,18 +75,54 @@ async def display_menu():
     print("====================================")
     return input("Enter your choice: ")
 
-async def connect_to_server(client_connection=None):
-    if client_connection:
-        logger.info("Already connected to server")
-        return client_connection
+async def connect_to_server(current_connection):
+    """
+    OPC UA 서버에 연결합니다.
+    현재 연결이 있으면 닫고 새 연결을 생성합니다.
+    """
+    global current_client_connection
     
-    url = input(f"Enter server URL [{DEFAULT_SERVER_URL}]: ") or DEFAULT_SERVER_URL
+    # 기존 연결 닫기
+    if current_connection:
+        try:
+            await current_connection.disconnect()
+            logger.info("Disconnected from previous server")
+        except Exception as e:
+            logger.warning(f"Error disconnecting from previous server: {e}")
+    
     try:
-        client_connection = await connection.create_session(url)
-        logger.info(f"Connected to server: {url}")
-        return client_connection
+        print("\n=== Connect to Server ===")
+        server_url = input(f"Enter server URL [{DEFAULT_SERVER_URL}]: ") or DEFAULT_SERVER_URL
+        
+        # 연결 생성
+        print(f"Connecting to {server_url}...")
+        client = await connection.create_session(server_url)
+        print("Connected successfully!")
+        
+        # 연결 정보 표시
+        try:
+            server_status = await client.get_node("i=2256").read_value()  # ServerStatusDataType
+            print(f"Server: {server_status.BuildInfo.ProductName} {server_status.BuildInfo.SoftwareVersion}")
+            print(f"Current time: {server_status.CurrentTime}")
+            print(f"State: {server_status.State.name}")
+        except Exception as status_err:
+            logger.warning(f"Could not read server status: {status_err}")
+        
+        # 네임스페이스 표시
+        try:
+            namespaces = await client.get_namespace_array()
+            print("\nAvailable namespaces:")
+            for i, ns in enumerate(namespaces):
+                print(f"  ns={i}: {ns}")
+        except Exception as ns_err:
+            logger.warning(f"Could not read namespaces: {ns_err}")
+        
+        # 전역 변수에 연결 저장
+        current_client_connection = client
+        return client
     except Exception as e:
         logger.error(f"Failed to connect to server: {e}")
+        print(f"Connection failed: {e}")
         return None
 
 async def disconnect_from_server(client_connection):
@@ -226,52 +270,59 @@ async def recreate_subscriptions(client_connection, subscription_list):
             }
             
             # 모니터링 항목 복구
-            for item in monitored_items:
-                try:
-                    node_id = item.get('node_id')
-                    sampling_interval = item.get('sampling_interval', 100)
-                    handler_options = item.get('handler_options', {})
-                    
-                    if node_id:
-                        logger.info(f"Recreating monitored item for node {node_id}...")
-                        
-                        # 콜백 함수 정의
-                        async def data_change_callback(node, value, data):
+            old_items = sub_info.get("monitored_items", [])
+            for item in old_items:
+                node_id = item.get('node_id')
+                if node_id:
+                    # 콜백 함수 정의
+                    async def data_change_callback(node, val, data):
+                        try:
+                            # 노드 이름 가져오기(가능한 경우)
                             try:
-                                node_id_str = str(node.nodeid)
-                                try:
-                                    display_name = await node.read_browse_name()
-                                    name = display_name.Name
-                                except:
-                                    name = node_id_str
-                                
-                                value_str = str(value)
-                                if len(value_str) > 60:
-                                    value_str = f"{value_str[:60]}..."
-                                print(f"Data change: {name} ({node_id_str}) = {value_str}")
-                            except Exception as e:
-                                print(f"Error in callback: {e}")
+                                display_name = await node.read_browse_name()
+                                name = display_name.Name
+                            except:
+                                # 이름을 가져올 수 없으면 노드 ID 사용
+                                name = str(node.nodeid)
+                            
+                            # 간결한 출력 형식
+                            print(f"{name}: {val}")
+                        except Exception as e:
+                            print(f"Error in callback: {e}")
+                            logger.error(f"Error in data change callback: {e}")
+                    
+                    # 직접 핸들러 클래스 정의 (datachange_notification 메서드를 명시적으로 포함)
+                    class SimpleHandler:
+                        async def datachange_notification(self, node, val, data):
+                            await data_change_callback(node, val, data)
+                            
+                        async def event_notification(self, event):
+                            pass
+                            
+                        async def status_change_notification(self, status):
+                            pass
+                    
+                    try:
+                        # 직접 node 객체 얻기
+                        node_obj = client_connection.get_node(node_id)
                         
-                        # 새 모니터링 항목 생성
-                        handle = await subscription.subscribe_data_change(
-                            new_sub,
-                            node_id,
-                            data_change_callback,
-                            sampling_interval,
-                            advanced_handler_options=handler_options
-                        )
+                        # 핸들러 클래스의 인스턴스 생성
+                        handler = SimpleHandler()
                         
-                        # 새 모니터링 항목 정보 저장
+                        # 직접 asyncua의 subscribe_data_change 메서드 호출
+                        new_handle = await new_sub.subscribe_data_change(node_obj, handler)
+                        
+                        # 새 모니터링 항목 저장
                         new_sub_info["monitored_items"].append({
-                            "handle": handle,
+                            "handle": new_handle,
                             "node_id": node_id,
-                            "sampling_interval": sampling_interval,
-                            "handler_options": handler_options
+                            "sampling_interval": item.get('sampling_interval', 100)
                         })
                         
-                        logger.info(f"Successfully recreated monitored item for {node_id}")
-                except Exception as item_err:
-                    logger.error(f"Failed to recreate monitored item: {item_err}")
+                        print(f"재생성된 구독 항목: {node_id}")
+                    except Exception as item_err:
+                        logger.error(f"Failed to recreate monitored item: {item_err}")
+                        print(f"모니터링 항목 재생성 오류: {item_err}")
             
             new_subscription_list.append(new_sub_info)
             logger.info(f"Successfully recreated subscription with ID: {new_sub.subscription_id}")
@@ -530,314 +581,270 @@ async def call_method(client_connection):
         logger.error(f"Failed to call method: {e}")
         print(f"Error: {e}")
 
-async def create_subscription(client_connection, subscription_list):
+async def create_subscription(client_connection, subscription_list, 
+                          publishing_interval=500, lifetime_count=10, 
+                          max_keep_alive_count=3, priority=0):
+    """
+    새로운 구독을 생성합니다.
+    """
     if not client_connection:
-        logger.info("Not connected to any server")
+        print("서버에 연결되어 있지 않습니다. 먼저 서버에 연결하세요.")
         return subscription_list
-    
+        
     try:
-        print("\n=== Create Subscription ===")
-        # 구독 파라미터 입력
-        publishing_interval = float(input("Enter publishing interval in ms [500]: ") or "500")
-        lifetime_count = int(input("Enter lifetime count [10]: ") or "10")
-        max_keep_alive_count = int(input("Enter max keep alive count [3]: ") or "3")
-        priority = int(input("Enter priority [0]: ") or "0")
+        # 라이브러리의 subscription 모듈을 사용하여 구독 생성
+        sub = await subscription.create_subscription(
+            client_connection, 
+            publishing_interval, 
+            lifetime_count, 
+            max_keep_alive_count, 
+            priority
+        )
         
-        # 연결 확인 및 재연결 시도
-        try:
-            # 간단한 호출로 연결 상태 확인
-            await client_connection.get_namespace_array()
-        except Exception as conn_err:
-            logger.warning(f"Connection check failed before creating subscription: {conn_err}")
-            logger.info("Attempting to reconnect...")
-            
-            # 재연결 시도
-            try:
-                # 기존 연결 닫기
-                try:
-                    await client_connection.disconnect()
-                except:
-                    pass
-                
-                # 다시 연결
-                server_url = DEFAULT_SERVER_URL
-                client_connection = await connection.create_session(server_url)
-                logger.info(f"Reconnected to server: {server_url}")
-            except Exception as reconnect_err:
-                logger.error(f"Failed to reconnect: {reconnect_err}")
-                print(f"Could not reconnect to server: {reconnect_err}")
-                return subscription_list
+        # 구독 정보 저장
+        subscription_info = {
+            "id": sub.subscription_id,
+            "subscription": sub,
+            "publishing_interval": publishing_interval,
+            "lifetime_count": lifetime_count,
+            "max_keep_alive_count": max_keep_alive_count,
+            "priority": priority,
+            "monitored_items": []
+        }
         
-        # 개선된 구독 생성 함수 사용
-        try:
-            sub = await subscription.create_subscription(
-                client_connection,
-                publishing_interval,
-                lifetime_count,
-                max_keep_alive_count,
-                priority
-            )
-        except Exception as sub_err:
-            if "closed" in str(sub_err).lower() or "connection" in str(sub_err).lower():
-                logger.warning(f"Connection issue during subscription creation: {sub_err}")
-                logger.info("Attempting to reconnect and retry...")
-                
-                # 재연결 시도
-                try:
-                    # 기존 연결 닫기
-                    try:
-                        await client_connection.disconnect()
-                    except:
-                        pass
-                    
-                    # 다시 연결
-                    server_url = DEFAULT_SERVER_URL
-                    client_connection = await connection.create_session(server_url)
-                    logger.info(f"Reconnected to server: {server_url}")
-                    
-                    # 구독 다시 시도
-                    sub = await subscription.create_subscription(
-                        client_connection,
-                        publishing_interval,
-                        lifetime_count,
-                        max_keep_alive_count,
-                        priority
-                    )
-                except Exception as retry_err:
-                    logger.error(f"Failed to retry subscription creation: {retry_err}")
-                    print(f"Could not create subscription after reconnection: {retry_err}")
-                    return subscription_list
-            else:
-                # 연결 관련 오류가 아닌 경우 그대로 예외 전파
-                raise
+        subscription_list.append(subscription_info)
+        print(f"구독이 생성되었습니다. ID: {sub.subscription_id}")
         
-        if sub:
-            # 구독 정보 저장
-            sub_info = {
-                "id": sub.subscription_id,
-                "subscription": sub,
-                "publishing_interval": publishing_interval,
-                "lifetime_count": lifetime_count,
-                "max_keep_alive_count": max_keep_alive_count,
-                "priority": priority,
-                "monitored_items": []
-            }
+        # 모니터링 항목 추가 여부 확인
+        add_item = input("모니터링 항목을 추가하시겠습니까? (y/n): ").lower() == 'y'
+        if add_item:
+            await add_monitored_item(client_connection, subscription_list)
             
-            subscription_list.append(sub_info)
-            
-            # 모니터링 항목 추가 여부
-            add_monitored_items = input("Add monitored items? (y/n): ").lower() == 'y'
-            if add_monitored_items:
-                await _add_monitored_items(client_connection, sub, sub_info)
-                
-            print(f"\nSuccessfully created subscription (ID: {sub.subscription_id})")
-        else:
-            print("\nFailed to create subscription")
     except Exception as e:
-        logger.error(f"Failed to create subscription: {e}")
-        print(f"Error: {e}")
+        logger.error(f"Error creating subscription: {e}")
+        print(f"구독 생성 중 오류가 발생했습니다: {e}")
     
     return subscription_list
 
-async def _add_monitored_items(client_connection, sub, sub_info):
-    """구독에 모니터링 항목 추가"""
-    try:
-        while True:
-            # 노드 ID 입력
-            node_id = input("\nEnter node ID to monitor (or empty to finish): ")
-            if not node_id:
-                break
-                
-            # 샘플링 간격 입력
-            sampling_interval = float(input("Enter sampling interval in ms [100]: ") or "100")
-            
-            # 저장 옵션
-            store_values = input("Store values for later analysis? (y/n): ").lower() == 'y'
-            max_values = 100
-            if store_values:
-                try:
-                    max_values = int(input("Maximum values to store [100]: ") or "100")
-                except ValueError:
-                    max_values = 100
-            
-            # 고급 핸들러 설정
-            handler_options = {
-                "log_changes": True,
-                "store_values": store_values,
-                "max_values": max_values,
-                "timestamp_values": True
-            }
-            
-            # 값 변경 시 표시할 콜백 함수
-            def display_callback(node, value, data):
-                node_id_str = str(node.nodeid)
-                value_str = str(value)
-                if len(value_str) > 60:
-                    value_str = f"{value_str[:60]}..."
-                print(f"Data change: {node_id_str} = {value_str}")
-            
-            # 연결 확인 및 재시도
-            try:
-                handle = await subscription.subscribe_data_change(
-                    sub, 
-                    node_id,
-                    display_callback,
-                    sampling_interval,
-                    advanced_handler_options=handler_options
-                )
-                
-                # 모니터링 항목 정보 저장
-                sub_info["monitored_items"].append({
-                    "handle": handle,
-                    "node_id": node_id,
-                    "sampling_interval": sampling_interval
-                })
-                
-                print(f"Successfully added monitored item for {node_id}")
-            except Exception as e:
-                logger.error(f"Failed to add monitored item: {e}")
-                print(f"Error adding monitored item: {e}")
-                
-                # 연결 문제인지 확인
-                if client_connection and ("closed" in str(e).lower() or "connection" in str(e).lower()):
-                    logger.warning("Connection issue detected during monitored item creation")
-                    
-                    # 재연결 시도 여부 확인
-                    try_reconnect = input("Connection issue detected. Try to reconnect? (y/n): ").lower() == 'y'
-                    if try_reconnect:
-                        try:
-                            logger.info("Attempting to reconnect...")
-                            
-                            # 기존 연결 닫기
-                            try:
-                                await client_connection.disconnect()
-                            except:
-                                pass
-                            
-                            # 서버에 재연결
-                            server_url = DEFAULT_SERVER_URL
-                            client_connection = await connection.create_session(server_url)
-                            logger.info(f"Reconnected to server: {server_url}")
-                            
-                            # 새 구독 생성
-                            new_sub = await subscription.create_subscription(
-                                client_connection,
-                                sub_info["publishing_interval"],
-                                sub_info["lifetime_count"],
-                                sub_info["max_keep_alive_count"],
-                                sub_info["priority"]
-                            )
-                            
-                            # 구독 객체 갱신
-                            sub_info["id"] = new_sub.subscription_id
-                            sub_info["subscription"] = new_sub
-                            sub = new_sub
-                            
-                            print(f"Successfully reconnected and created new subscription (ID: {new_sub.subscription_id})")
-                            
-                            # 다시 모니터링 항목 추가 시도
-                            print("Retrying to add monitored item...")
-                            handle = await subscription.subscribe_data_change(
-                                sub, 
-                                node_id,
-                                display_callback,
-                                sampling_interval,
-                                advanced_handler_options=handler_options
-                            )
-                            
-                            # 모니터링 항목 정보 저장
-                            sub_info["monitored_items"].append({
-                                "handle": handle,
-                                "node_id": node_id,
-                                "sampling_interval": sampling_interval
-                            })
-                            
-                            print(f"Successfully added monitored item for {node_id} after reconnection")
-                            
-                        except Exception as reconnect_err:
-                            logger.error(f"Failed to reconnect and add monitored item: {reconnect_err}")
-                            print(f"Error during reconnection: {reconnect_err}")
-            
-            # 추가 항목 모니터링 여부
-            if input("Add another monitored item? (y/n): ").lower() != 'y':
-                break
-    except Exception as e:
-        logger.error(f"Error in _add_monitored_items: {e}")
-        print(f"Error: {e}")
-
-async def modify_subscription(subscription_list):
-    if not subscription_list:
-        print("No active subscriptions")
+async def add_monitored_item(client_connection, subscription_list):
+    """
+    기존 구독에 모니터링 항목을 추가합니다.
+    """
+    if not client_connection:
+        print("서버에 연결되어 있지 않습니다. 먼저 서버에 연결하세요.")
         return subscription_list
+        
+    if not subscription_list:
+        print("활성화된 구독이 없습니다. 먼저 구독을 생성하세요.")
+        create_sub = input("지금 구독을 생성하시겠습니까? (y/n): ").lower() == 'y'
+        if create_sub:
+            subscription_list = await create_subscription(client_connection, subscription_list)
+            # 사용자가 이미 모니터링 항목을 추가했을 수 있으므로 여기서 종료
+            return subscription_list
+        else:
+            return subscription_list
+    
+    # 구독 선택
+    print("\n활성화된 구독 목록:")
+    for i, sub_info in enumerate(subscription_list, 1):
+        monitored_items = sub_info.get("monitored_items", [])
+        print(f"{i}. ID: {sub_info['id']} (모니터링 항목: {len(monitored_items)}개)")
     
     try:
-        # 구독 목록 표시
-        print("\nActive subscriptions:")
-        for i, sub in enumerate(subscription_list):
-            monitored_count = len(sub.get("monitored_items", []))
-            print(f"{i+1}. ID: {sub['id']} (Interval: {sub['publishing_interval']}ms, Items: {monitored_count})")
+        selection = int(input("\n모니터링 항목을 추가할 구독 번호를 선택하세요: "))
+        if selection < 1 or selection > len(subscription_list):
+            print("잘못된 선택입니다.")
+            return subscription_list
         
-        # 구독 선택
-        selection = input("\nSelect subscription to modify (number): ")
-        try:
-            idx = int(selection) - 1
-            if idx < 0 or idx >= len(subscription_list):
-                print("Invalid selection")
-                return subscription_list
-        except ValueError:
-            print("Invalid input")
+        selected_sub_info = subscription_list[selection - 1]
+        sub = selected_sub_info["subscription"]
+        
+        # 노드 ID 입력
+        node_id_str = input("추가할 노드 ID를 입력하세요 (예: ns=2;i=1): ")
+        if not node_id_str:
+            print("노드 ID가 입력되지 않았습니다.")
+            return subscription_list
+        
+        # 샘플링 간격 입력
+        sampling_interval_str = input("샘플링 간격을 입력하세요 (ms, 기본값: 100): ")
+        sampling_interval = 100
+        if sampling_interval_str:
+            try:
+                sampling_interval = float(sampling_interval_str)
+            except ValueError:
+                print("잘못된 샘플링 간격입니다. 기본값 100ms를 사용합니다.")
+        
+        # 데이터 변경 콜백 함수 정의
+        async def data_change_callback(node, val, data):
+            try:
+                # 노드 이름 가져오기(가능한 경우)
+                try:
+                    display_name = await node.read_browse_name()
+                    name = display_name.Name
+                except:
+                    # 이름을 가져올 수 없으면 노드 ID 사용
+                    name = str(node.nodeid)
+                
+                # 간결한 출력 형식
+                print(f"{name}: {val}")
+            except Exception as e:
+                print(f"Error in callback: {e}")
+                logger.error(f"Error in data change callback: {e}")
+
+        # 핸들러 옵션 설정
+        handler_options = {
+            'callback': data_change_callback,
+            'log_changes': True,
+            'log_level': logging.INFO
+        }
+        
+        # 구독 핸들 가져오기
+        handle = await subscription.subscribe_data_change(
+            sub, node_id_str, 
+            sampling_interval=sampling_interval,
+            advanced_handler_options=handler_options
+        )
+        
+        # 모니터링 항목 정보 저장
+        monitored_item = {
+            "handle": handle,
+            "node_id": node_id_str,
+            "sampling_interval": sampling_interval
+        }
+        
+        selected_sub_info["monitored_items"].append(monitored_item)
+        print(f"모니터링 항목이 추가되었습니다. 핸들: {handle}")
+        
+    except Exception as e:
+        logger.error(f"Error adding monitored item: {e}")
+        print(f"모니터링 항목 추가 중 오류가 발생했습니다: {e}")
+    
+    return subscription_list
+
+async def modify_subscription(subscription_list):
+    """
+    기존 구독을 수정합니다.
+    """
+    if not subscription_list:
+        print("활성화된 구독이 없습니다. 먼저 구독을 생성하세요.")
+        return subscription_list
+
+    # 구독 선택
+    print("\n활성화된 구독 목록:")
+    for i, sub_info in enumerate(subscription_list, 1):
+        monitored_items = sub_info.get("monitored_items", [])
+        print(f"{i}. ID: {sub_info['id']} (모니터링 항목: {len(monitored_items)}개)")
+    
+    try:
+        selection = int(input("\n수정할 구독 번호를 선택하세요: "))
+        if selection < 1 or selection > len(subscription_list):
+            print("잘못된 선택입니다.")
+            return subscription_list
+        
+        client_connection = get_current_connection()
+        if not client_connection:
+            print("서버에 연결되어 있지 않습니다. 먼저 서버에 연결하세요.")
             return subscription_list
             
-        selected_sub = subscription_list[idx]
-        sub_object = selected_sub['subscription']
+        # 선택된 구독 정보
+        selected_sub = subscription_list[selection - 1]
+        sub_object = selected_sub.get("subscription")
         
-        # 수정 유형 선택
-        mod_type = input("What to modify? (1=Parameters, 2=Add Items, 3=Publishing Mode): ") or "1"
+        if not sub_object:
+            print("구독 객체를 찾을 수 없습니다.")
+            return subscription_list
+        
+        print("\n수정 유형을 선택하세요:")
+        print("1. 구독 속성 수정 (발행 간격 등)")
+        print("2. 모니터링 항목 추가")
+        print("3. 모니터링 항목 삭제")
+        print("4. 발행 모드 설정 (활성화/비활성화)")
+        
+        mod_type = input("\n선택: ")
         
         if mod_type == "1":
-            # 구독 매개변수 수정
-            publishing_interval = float(input(f"Enter new publishing interval in ms [{selected_sub['publishing_interval']}]: ") 
-                                       or str(selected_sub['publishing_interval']))
-            lifetime_count = int(input(f"Enter new lifetime count [{selected_sub['lifetime_count']}]: ") 
-                                or str(selected_sub['lifetime_count']))
-            max_keep_alive_count = int(input(f"Enter new max keep alive count [{selected_sub['max_keep_alive_count']}]: ") 
-                                      or str(selected_sub['max_keep_alive_count']))
+            # 구독 속성 수정
+            new_period = float(input(f"발행 간격(ms) [{selected_sub.get('publishing_interval', 500)}]: ") or selected_sub.get('publishing_interval', 500))
+            new_lifetime = int(input(f"수명 카운트 [{selected_sub.get('lifetime_count', 10)}]: ") or selected_sub.get('lifetime_count', 10))
+            new_keepalive = int(input(f"최대 Keep-Alive 카운트 [{selected_sub.get('max_keep_alive_count', 3)}]: ") or selected_sub.get('max_keep_alive_count', 3))
             
-            # 구독 수정
+            # 속성 수정 시도
             result = await subscription.modify_subscription(
-                sub_object,
-                publishing_interval,
-                lifetime_count,
-                max_keep_alive_count
+                sub_object, 
+                new_period, 
+                new_lifetime, 
+                new_keepalive
             )
             
             if result:
-                print(f"\nSuccessfully modified subscription (ID: {selected_sub['id']})")
-                # 저장된 값 업데이트
-                selected_sub['publishing_interval'] = publishing_interval
-                selected_sub['lifetime_count'] = lifetime_count
-                selected_sub['max_keep_alive_count'] = max_keep_alive_count
+                # 성공 시 구독 정보 업데이트
+                selected_sub["publishing_interval"] = new_period
+                selected_sub["lifetime_count"] = new_lifetime
+                selected_sub["max_keep_alive_count"] = new_keepalive
+                print(f"구독 {sub_object.subscription_id}의 속성이 업데이트되었습니다.")
             else:
-                print(f"\nFailed to modify subscription (ID: {selected_sub['id']})")
+                print(f"구독 {sub_object.subscription_id}의 속성 업데이트에 실패했습니다.")
                 
         elif mod_type == "2":
             # 모니터링 항목 추가
-            await _add_monitored_items(None, sub_object, selected_sub)
+            await add_monitored_item(client_connection, subscription_list)
             
         elif mod_type == "3":
-            # 발행 모드 변경
-            mode = input("Enable publishing? (y/n): ").lower() == 'y'
-            result = await subscription.set_publishing_mode(sub_object, mode)
-            
-            if result:
-                status = "enabled" if mode else "disabled"
-                print(f"\nPublishing mode {status} for subscription (ID: {selected_sub['id']})")
+            # 모니터링 항목 삭제
+            monitored_items = selected_sub.get("monitored_items", [])
+            if not monitored_items:
+                print("이 구독에 모니터링 항목이 없습니다.")
+                return subscription_list
+                
+            print("\n현재 모니터링 항목:")
+            for i, item in enumerate(monitored_items, 1):
+                print(f"{i}. {item.get('node_id')} (핸들: {item.get('handle')})")
+                
+            try:
+                item_idx = int(input("\n삭제할 항목 번호를 선택하세요: "))
+                if item_idx < 1 or item_idx > len(monitored_items):
+                    print("잘못된 선택입니다.")
+                    return subscription_list
+                    
+                # 선택된 항목 정보
+                item = monitored_items[item_idx - 1]
+                handle = item.get("handle")
+                
+                # 항목 삭제 시도
+                try:
+                    await sub_object.unsubscribe(handle)
+                    # 삭제 후 목록에서 제거
+                    monitored_items.pop(item_idx - 1)
+                    print(f"모니터링 항목이 삭제되었습니다. 핸들: {handle}")
+                except Exception as e:
+                    logger.error(f"Failed to unsubscribe monitored item: {e}")
+                    print(f"모니터링 항목 삭제 중 오류 발생: {e}")
+            except ValueError:
+                print("잘못된 입력입니다.")
+                
+        elif mod_type == "4":
+            # 발행 모드 설정
+            current_mode = "활성화됨" # 기본값은 활성화라고 가정
+            new_mode_str = input(f"발행 모드 (현재: {current_mode}) [1: 활성화, 0: 비활성화]: ")
+            if new_mode_str in ["0", "1"]:
+                new_mode = new_mode_str == "1"
+                result = await subscription.set_publishing_mode(sub_object, new_mode)
+                
+                if result:
+                    status = "활성화" if new_mode else "비활성화"
+                    print(f"구독 {sub_object.subscription_id}의 발행 모드가 {status}되었습니다.")
+                else:
+                    print(f"구독 {sub_object.subscription_id}의 발행 모드 설정에 실패했습니다.")
             else:
-                print(f"\nFailed to set publishing mode for subscription (ID: {selected_sub['id']})")
+                print("잘못된 모드 선택입니다.")
+                
+        else:
+            print("잘못된 수정 유형 선택입니다.")
+            
     except Exception as e:
-        logger.error(f"Failed to modify subscription: {e}")
-        print(f"Error: {e}")
-    
+        logger.error(f"Error modifying subscription: {e}")
+        print(f"구독 수정 중 오류 발생: {e}")
+        
     return subscription_list
 
 async def delete_subscription(subscription_list):
@@ -901,6 +908,35 @@ async def execute_example_script():
     except Exception as e:
         logger.error(f"Failed to execute example script: {e}")
 
+class DataChangeHandler:
+    """OPC UA 데이터 변경 알림을 처리하는 핸들러 클래스"""
+    
+    async def datachange_notification(self, node, val, data):
+        """데이터 변경 알림을 처리하는 메서드"""
+        try:
+            node_id_str = str(node.nodeid)
+            try:
+                display_name = await node.read_browse_name()
+                name = display_name.Name
+            except:
+                name = node_id_str
+            
+            value_str = str(val)
+            if len(value_str) > 60:
+                value_str = f"{value_str[:60]}..."
+            print(f"Data change: {name} ({node_id_str}) = {value_str}")
+        except Exception as e:
+            print(f"Error in callback: {e}")
+            logger.error(f"Error in data change callback: {e}")
+    
+    async def event_notification(self, event):
+        """이벤트 알림을 처리하는 메서드"""
+        logger.info(f"Event received: {event}")
+    
+    async def status_change_notification(self, status):
+        """상태 변경 알림을 처리하는 메서드"""
+        logger.info(f"Status change: {status}")
+
 async def enter_monitoring_mode(client_connection, subscription_list):
     """구독 데이터 모니터링 모드로 진입합니다."""
     if not client_connection:
@@ -916,17 +952,31 @@ async def enter_monitoring_mode(client_connection, subscription_list):
         else:
             return subscription_list
     
-    # 활성 구독 목록 출력
-    print("\n활성화된 구독 목록:")
-    for i, sub_info in enumerate(subscription_list, 1):
-        monitored_items = sub_info.get("monitored_items", [])
-        print(f"{i}. ID: {sub_info['id']} (모니터링 항목: {len(monitored_items)}개)")
+    # 모니터링 항목 확인
+    has_monitored_items = False
+    for sub_info in subscription_list:
+        if len(sub_info.get("monitored_items", [])) > 0:
+            has_monitored_items = True
+            break
     
-    print("\n===== 모니터링 모드 =====")
-    print("이 모드에서는 구독한 데이터의 변경사항을 실시간으로 관찰할 수 있습니다.")
-    print("모니터링 중에 노드의 값이 변경되면 화면에 표시됩니다.")
-    print("모니터링 모드를 종료하려면 'q' 또는 'exit'를 입력하세요.")
-    print("데이터 변경 대기 중...")
+    if not has_monitored_items:
+        print("\n모니터링할 항목이 없습니다. 먼저 구독에 모니터링 항목을 추가하세요.")
+        add_item = input("지금 모니터링 항목을 추가하시겠습니까? (y/n): ").lower() == 'y'
+        if add_item:
+            await add_monitored_item(client_connection, subscription_list)
+            # 다시 확인
+            has_monitored_items = False
+            for sub_info in subscription_list:
+                if len(sub_info.get("monitored_items", [])) > 0:
+                    has_monitored_items = True
+                    break
+            
+            if not has_monitored_items:
+                print("모니터링 항목이 추가되지 않았습니다. 모니터링 모드를 종료합니다.")
+                return subscription_list
+    
+    print("\n===== 모니터링 모드 시작 =====")
+    print("'q' 또는 'exit'를 입력하여 종료")
     
     # 모니터링 상태 플래그
     monitoring_active = True
@@ -938,7 +988,7 @@ async def enter_monitoring_mode(client_connection, subscription_list):
             # 비동기 방식으로 입력 받기
             exit_command = await asyncio.to_thread(input, "")
             if exit_command.lower() in ['q', 'exit', 'quit']:
-                print("모니터링 모드를 종료합니다...")
+                print("모니터링 모드 종료...")
                 monitoring_active = False
                 return
             await asyncio.sleep(0.1)
@@ -951,8 +1001,8 @@ async def enter_monitoring_mode(client_connection, subscription_list):
                 # 간단한 연결 상태 확인
                 await client_connection.get_namespace_array()
             except Exception as e:
-                print(f"\n연결 오류가 발생했습니다: {e}")
-                print("서버와의 연결이 끊어졌을 수 있습니다. 모니터링을 종료합니다.")
+                print("\n연결 오류가 발생했습니다: {e}")
+                print("모니터링 종료.")
                 monitoring_active = False
                 return
             await asyncio.sleep(5)  # 5초마다 연결 상태 확인
@@ -961,18 +1011,9 @@ async def enter_monitoring_mode(client_connection, subscription_list):
     input_task = asyncio.create_task(check_exit_command())
     connection_task = asyncio.create_task(check_connection_status())
     
-    # 모니터링 시작 시간
-    start_time = time.time()
-    
     try:
         # 모니터링 모드 유지
         while monitoring_active:
-            # 진행 중인 시간 표시 (매 30초마다)
-            current_time = time.time()
-            elapsed_time = int(current_time - start_time)
-            if elapsed_time > 0 and elapsed_time % 30 == 0:
-                print(f"\n모니터링 진행 중... (경과 시간: {elapsed_time}초)")
-            
             await asyncio.sleep(1)
     except asyncio.CancelledError:
         print("모니터링이 취소되었습니다.")
@@ -996,144 +1037,165 @@ async def enter_monitoring_mode(client_connection, subscription_list):
         except asyncio.CancelledError:
             pass
         
-        print("\n모니터링 모드가 종료되었습니다.")
+        print("\n===== 모니터링 모드 종료 =====")
     
     return subscription_list
 
 async def main():
+    global current_client_connection
     client_connection = None
     subscription_list = []
     
     while True:
-        choice = await display_menu()
-        
         try:
-            if choice == '0' or choice.lower() == 'q':
-                # Clean up before exit
-                if client_connection:
-                    for sub in subscription_list:
-                        await subscription.delete_subscription(sub['subscription'])
-                    await connection.close_session(client_connection)
-                print("\nExiting OPC UA Client. Goodbye!")
-                break
+            choice = await display_menu()
+            
+            try:
+                if choice == '0' or choice.lower() == 'q':
+                    # Clean up before exit
+                    if client_connection:
+                        for sub in subscription_list:
+                            try:
+                                await subscription.delete_subscription(sub['subscription'])
+                            except Exception as e:
+                                logger.warning(f"Error deleting subscription: {e}")
+                        await connection.close_session(client_connection)
+                    print("\nExiting OPC UA Client. Goodbye!")
+                    break
                 
-            elif choice == '1':  # Connect
-                client_connection = await connect_to_server(client_connection)
-                
-            elif choice == '2':  # Disconnect
-                client_connection = await disconnect_from_server(client_connection)
-                subscription_list = []  # Clear subscriptions upon disconnect
-                
-            elif choice == '3':  # Get Node Info
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    await get_node_info(client_connection)
+                elif choice == '1':  # Connect
+                    client_connection = await connect_to_server(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
                     
-                    # 재연결된 경우 구독 복구
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
-                
-            elif choice == '4':  # Read Node Value
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    await read_node_value(client_connection)
+                elif choice == '2':  # Disconnect
+                    client_connection = await disconnect_from_server(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    subscription_list = []  # Clear subscriptions upon disconnect
                     
-                    # 재연결된 경우 구독 복구
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
-                
-            elif choice == '5':  # Write Node Value
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    await write_node_value(client_connection)
+                elif choice == '3':  # Get Node Info
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        await get_node_info(client_connection)
+                        
+                        # 재연결된 경우 구독 복구
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
                     
-                    # 재연결된 경우 구독 복구
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
-                
-            elif choice == '6':  # Browse Nodes
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    await browse_nodes(client_connection)
+                elif choice == '4':  # Read Node Value
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        await read_node_value(client_connection)
+                        
+                        # 재연결된 경우 구독 복구
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
                     
-                    # 재연결된 경우 구독 복구
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
-                
-            elif choice == '7':  # Search Nodes
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    await find_nodes(client_connection)
+                elif choice == '5':  # Write Node Value
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        await write_node_value(client_connection)
+                        
+                        # 재연결된 경우 구독 복구
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
                     
-                    # 재연결된 경우 구독 복구
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
-                
-            elif choice == '8':  # Call Method
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    await call_method(client_connection)
+                elif choice == '6':  # Browse Nodes
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        await browse_nodes(client_connection)
+                        
+                        # 재연결된 경우 구독 복구
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
                     
-                    # 재연결된 경우 구독 복구
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
-                
-            elif choice == '9':  # Create Subscription
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    subscription_list = await create_subscription(client_connection, subscription_list)
-                
-            elif choice == '10':  # Modify Subscription
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
+                elif choice == '7':  # Search Nodes
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        await find_nodes(client_connection)
+                        
+                        # 재연결된 경우 구독 복구
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
                     
-                    subscription_list = await modify_subscription(subscription_list)
-                
-            elif choice == '11':  # Delete Subscription
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
+                elif choice == '8':  # Call Method
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        await call_method(client_connection)
+                        
+                        # 재연결된 경우 구독 복구
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
                     
-                    subscription_list = await delete_subscription(subscription_list)
-                
-            elif choice == '12':  # Execute Example Script
-                await execute_example_script()
-                
-            elif choice == '13':  # Enter Monitoring Mode
-                # 연결 확인 및 재연결
-                client_connection, reconnected = await check_and_reconnect(client_connection)
-                if client_connection:
-                    if reconnected and subscription_list:
-                        print("Connection was re-established. Recreating subscriptions...")
-                        subscription_list = await recreate_subscriptions(client_connection, subscription_list)
+                elif choice == '9':  # Create Subscription
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        subscription_list = await create_subscription(client_connection, subscription_list)
                     
-                    subscription_list = await enter_monitoring_mode(client_connection, subscription_list)
-                
-            else:
-                print("\nInvalid choice. Please try again.")
-                
+                elif choice == '10':  # Modify Subscription
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
+                        
+                        subscription_list = await modify_subscription(subscription_list)
+                    
+                elif choice == '11':  # Delete Subscription
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
+                        
+                        subscription_list = await delete_subscription(subscription_list)
+                    
+                elif choice == '12':  # Execute Example Script
+                    await execute_example_script()
+                    
+                elif choice == '13':  # Enter Monitoring Mode
+                    # 연결 확인 및 재연결
+                    client_connection, reconnected = await check_and_reconnect(client_connection)
+                    current_client_connection = client_connection  # 전역 변수 업데이트
+                    if client_connection:
+                        if reconnected and subscription_list:
+                            print("Connection was re-established. Recreating subscriptions...")
+                            subscription_list = await recreate_subscriptions(client_connection, subscription_list)
+                        
+                        subscription_list = await enter_monitoring_mode(client_connection, subscription_list)
+                    
+                else:
+                    print("\nInvalid choice. Please try again.")
+                    
+            except Exception as e:
+                logger.error(f"Error processing choice: {e}")
+                traceback.print_exc()
+
         except Exception as e:
-            logger.error(f"Error processing choice: {e}")
+            logger.error(f"Error processing main loop: {e}")
             traceback.print_exc()
 
 if __name__ == "__main__":

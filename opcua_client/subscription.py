@@ -37,12 +37,19 @@ async def create_subscription(
         Subscription object
     """
     try:
-        # Updated to match asyncua Client.create_subscription method signature
-        # In asyncua library, parameters might be positional rather than keyword
+        # 기본 핸들러 생성 - 콜백 없이도 기본 출력 제공
+        handler = DataChangeHandler(
+            log_changes=True,
+            log_level=logging.INFO,
+            store_values=False
+        )
+        
+        # 구독 생성 시 핸들러 전달
         subscription = await client.create_subscription(
             period, 
-            handler=None  # Using the default handler
+            handler=handler  # 명시적으로 핸들러 전달
         )
+        
         logger.info(f"Created subscription with publishing interval {period}ms, "
                    f"lifetime count {lifetime_count}, max keep-alive count {max_keep_alive_count}, "
                    f"priority {priority}")
@@ -201,7 +208,21 @@ class DataChangeHandler:
         Handle data change notifications - compatible with asyncua's subscription handler interface.
         
         This method name matches what asyncua expects when used as a handler.
+        asyncua 라이브러리는 데이터 변경 시 이 이름의 메서드를 호출합니다.
         """
+        logger.debug(f"datachange_notification called for node {node.nodeid}")
+        
+        # 노드 이름 가져오기
+        try:
+            display_name = await node.read_browse_name()
+            name = display_name.Name
+        except:
+            name = str(node.nodeid)
+        
+        # 간결한 콘솔 출력 (항상 출력)
+        print(f"{name}: {val}")
+        
+        # 내부 콜백 처리를 위해 __call__ 호출
         await self(node, val, data)
 
     async def status_change_notification(self, status):
@@ -246,14 +267,18 @@ class DataChangeHandler:
             node_id = str(node.nodeid)
             timestamp = datetime.datetime.now()
             
-            # Log the change if enabled
+            # 노드 이름 가져오기
+            try:
+                display_name = await node.read_browse_name()
+                name = display_name.Name
+            except:
+                name = node_id
+            
+            # 간결한 콘솔 출력 (항상 출력)
+            print(f"{name}: {value}")
+            
+            # Log the change if enabled (내부 로깅용)
             if self.log_changes:
-                try:
-                    display_name = await node.read_display_name()
-                    name = display_name.Text
-                except:
-                    name = node_id
-                    
                 # Format value for logging
                 value_str = str(value)
                 if len(value_str) > 100:
@@ -381,48 +406,14 @@ async def subscribe_data_change(
         # Create the appropriate handler
         handler = None
         
-        # 항상 DataChangeHandler를 사용하도록 수정
-        # Create handler using class that properly implements asyncua's handler interface
-        if advanced_handler_options:
-            # Use the advanced handler with options
-            handler_opts = advanced_handler_options.copy()
-            if callback:
-                handler_opts['callback'] = callback
-            handler = DataChangeHandler(**handler_opts)
-        else:
-            # Always wrap the callback in our DataChangeHandler
-            # 내부 클래스를 생성하여 asyncua 인터페이스 구현
-            class DirectHandler:
-                def __init__(self, callback_fn):
-                    self.callback_fn = callback_fn
-                
-                async def datachange_notification(self, node, val, data):
-                    if asyncio.iscoroutinefunction(self.callback_fn):
-                        await self.callback_fn(node, val, data)
-                    else:
-                        self.callback_fn(node, val, data)
-                
-                # asyncua가 필요로 하는 다른 알림 메서드들
-                async def event_notification(self, event):
-                    pass
-                
-                async def status_change_notification(self, status):
-                    pass
-            
-            if callback:
-                handler = DirectHandler(callback)
-            else:
-                # Default handler
-                async def default_callback(node, value, data):
-                    node_id_str = str(node.nodeid)
-                    value_str = str(value)
-                    if len(value_str) > 60:
-                        value_str = f"{value_str[:60]}..."
-                    logger.info(f"Data change: {node_id_str} = {value_str}")
-                    print(f"Data change: {node_id_str} = {value_str}")
-                
-                handler = DirectHandler(default_callback)
+        # Always use DataChangeHandler
+        handler_opts = advanced_handler_options or {}
+        if callback:
+            handler_opts['callback'] = callback
         
+        # 핸들러 생성 - 콜백이 없어도 기본 출력 제공
+        handler = DataChangeHandler(**handler_opts)
+                
         # Create the monitored item with appropriate parameters
         # Try multiple approaches with different parameter combinations
         # since servers and library versions may have different requirements
