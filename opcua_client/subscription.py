@@ -219,10 +219,7 @@ class DataChangeHandler:
         except:
             name = str(node.nodeid)
         
-        # 간결한 콘솔 출력 (항상 출력)
-        print(f"{name}: {val}")
-        
-        # 내부 콜백 처리를 위해 __call__ 호출
+        # 내부 콜백 처리를 위해 __call__ 호출 (콘솔 출력은 __call__에서 처리)
         await self(node, val, data)
 
     async def status_change_notification(self, status):
@@ -274,8 +271,9 @@ class DataChangeHandler:
             except:
                 name = node_id
             
-            # 간결한 콘솔 출력 (항상 출력)
-            print(f"{name}: {value}")
+            # 간결한 콘솔 출력 - 외부 콜백이 없는 경우에만 직접 출력
+            if not self.callback:
+                print(f"{name}: {value}")
             
             # Log the change if enabled (내부 로깅용)
             if self.log_changes:

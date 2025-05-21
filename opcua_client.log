@@ -3068,3 +3068,4 @@ Traceback (most recent call last):
 2025-05-21 16:32:01,345 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 73 is already done
 2025-05-21 16:32:09,353 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287567, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
 2025-05-21 16:33:03,731 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287568, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:36:04,310 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287569, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
