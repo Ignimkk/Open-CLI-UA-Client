@@ -31,14 +31,33 @@ async def browse_node(client: Client, node_id: Optional[str] = None) -> List[Nod
     
     try:
         children = await node.get_children()
+        
+        # 중복 제거를 위해 각 노드의 DisplayName과 NodeId를 추적
+        unique_children = []
+        seen_nodes = set()  # (display_name, nodeid) 튜플의 집합
+        
         for child in children:
-            name = await child.read_browse_name()
-            # NodeId 문자열이 너무 길거나 바이너리 데이터를 포함할 수 있으므로 간결하게 표시
+            # 노드 정보 가져오기
+            browse_name = await child.read_browse_name()
+            display_name = await child.read_display_name()
+            
+            # 노드 ID 처리 및 로깅
             node_id_str = str(child.nodeid)
             if len(node_id_str) > 50:
-                node_id_str = f"{node_id_str[:30]}...{node_id_str[-10:]}"
-            logger.info(f"Node: {name.Name}, ID: {node_id_str}")
-        return children
+                node_id_str_display = f"{node_id_str[:30]}...{node_id_str[-10:]}"
+            else:
+                node_id_str_display = node_id_str
+                
+            logger.info(f"Node: {display_name.Text}, ID: {node_id_str_display}")
+            
+            # 중복 확인 (DisplayName과 NodeId 둘 다 확인)
+            node_key = (display_name.Text, node_id_str)
+            
+            if node_key not in seen_nodes:
+                seen_nodes.add(node_key)
+                unique_children.append(child)
+        
+        return unique_children
     except Exception as e:
         # 예외 메시지 간결화
         err_msg = str(e)

@@ -3069,3 +3069,70 @@ Traceback (most recent call last):
 2025-05-21 16:32:09,353 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287567, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
 2025-05-21 16:33:03,731 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287568, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
 2025-05-21 16:36:04,310 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287569, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:37:51,162 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 16:37:51,162 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 74.5초): Connection is closed
+2025-05-21 16:37:51,162 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:37:51,162 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:37:51,162 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:37:51,162 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:37:51,162 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:37:51,162 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:38:03,899 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287570, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:41:36,533 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:41:36,533 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:41:36,533 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:41:45,715 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287571, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:42:18,242 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:44:04,417 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 16:44:04,417 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 83.5초): Connection is closed
+2025-05-21 16:44:04,417 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:44:04,418 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:44:04,418 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:44:04,418 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:44:04,418 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:44:04,418 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:44:04,466 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287572, RevisedPublishingInterval=1000.0, RevisedLifetimeCount=8100, RevisedMaxKeepAliveCount=2700)
+2025-05-21 16:44:34,088 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:45:20,548 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:45:36,438 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:46:07,241 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287573, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:46:17,516 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 16:46:33,731 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:47:05,747 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287574, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:49:41,923 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 16:49:41,923 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 152.2초): Connection is closed
+2025-05-21 16:49:41,924 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:49:41,924 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:49:41,924 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:49:41,924 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:49:41,924 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:49:41,924 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:49:41,940 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287575, RevisedPublishingInterval=3000.0, RevisedLifetimeCount=2700, RevisedMaxKeepAliveCount=900)
+2025-05-21 16:49:41,943 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 16:49:41,946 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287576, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:50:06,477 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:52:57,996 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287577, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:53:06,878 - __main__ - WARNING - Node exists but may not be readable: The node id refers to a node that does not exist in the server address space.(BadNodeIdUnknown)
+2025-05-21 16:53:33,844 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 16:55:06,928 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 444 is already done
+2025-05-21 16:55:13,497 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287578, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:55:24,248 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 16:56:03,148 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:56:03,154 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 16:56:28,737 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 16:56:28,782 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 16:57:30,539 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 385 is already done
+2025-05-21 17:01:04,653 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287579, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 17:01:15,380 - opcua_client.subscription - WARNING - Subscribed to data changes without handler or sampling interval. Default values will be used.
+2025-05-21 17:01:22,570 - __main__ - ERROR - Error processing choice: 'list' object has no attribute 'items'
+2025-05-21 17:01:24,377 - __main__ - ERROR - Error processing choice: 'list' object has no attribute 'items'
+2025-05-21 17:04:17,978 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 56 is already done
+2025-05-21 17:04:17,978 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 57 is already done
+2025-05-21 17:04:24,977 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287580, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 17:05:11,037 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 17:06:09,209 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 99 is already done
+2025-05-21 17:06:09,209 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 98 is already done
+2025-05-21 17:06:17,227 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287581, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 17:06:39,947 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 17:06:59,693 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+2025-05-21 17:06:59,734 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287582, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)

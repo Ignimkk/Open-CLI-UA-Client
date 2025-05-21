@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 async def create_subscription(
     client: Client, 
-    period: float = 500, 
+    period: float = 1000, 
     lifetime_count: int = 10000, 
     max_keep_alive_count: int = 3000,
     priority: int = 0
