@@ -52,6 +52,7 @@ def get_current_connection():
 
 async def display_menu():
     print("\n===== OPC UA Client Application =====")
+    print("0. List Server Endpoints")
     print("1. Connect to Server (New Session)")
     print("2. Disconnect Current Session")
     print("3. List and Switch Sessions")
@@ -66,7 +67,7 @@ async def display_menu():
     print("12. Delete Subscription")
     print("13. Execute Example Script")
     print("14. Enter Monitoring Mode")
-    print("0. Exit")
+    print("99. Exit")
     print("====================================")
     return input("Enter your choice: ")
 
@@ -1325,6 +1326,78 @@ async def enter_monitoring_mode(client_connection, subscription_list):
     
     return subscription_list
 
+async def list_endpoints():
+    """
+    OPC UA 서버의 사용 가능한 엔드포인트를 조회합니다.
+    
+    서버에 연결하기 전에 지원하는 보안 모드와 정책을 확인할 수 있습니다.
+    또한 인증서 및 연결 시 필요한 다른 보안 요구사항도 확인할 수 있습니다.
+    """
+    try:
+        print("\n=== List Server Endpoints ===")
+        server_url = input(f"Enter server URL [{DEFAULT_SERVER_URL}]: ") or DEFAULT_SERVER_URL
+        
+        print(f"\n서버 {server_url}의 엔드포인트를 가져오는 중...")
+        
+        # connection 모듈의 get_endpoints 함수 사용
+        endpoints = await connection.get_endpoints(server_url)
+        
+        if not endpoints:
+            print("사용 가능한 엔드포인트가 없습니다.")
+            return
+            
+        print(f"\n{len(endpoints)}개의 엔드포인트를 찾았습니다:\n")
+        
+        # 각 엔드포인트의 정보 표시
+        for i, endpoint in enumerate(endpoints, 1):
+            # 보안 모드 가져오기 (정수를 이름으로 변환)
+            security_mode_num = getattr(endpoint, 'SecurityMode', ua.MessageSecurityMode.None_)
+            security_mode = ua.MessageSecurityMode(security_mode_num).name if isinstance(security_mode_num, int) else str(security_mode_num)
+            
+            # 보안 정책 URI 가져오기
+            security_policy = getattr(endpoint, 'SecurityPolicyUri', None) or "Unknown"
+            security_policy_name = security_policy.split("#")[1] if "#" in security_policy else security_policy
+            
+            # 엔드포인트 URL
+            endpoint_url = getattr(endpoint, 'EndpointUrl', None) or "Unknown"
+            
+            # 간결한 출력 형식 (주요 정보만)
+            print(f"{i}. 엔드포인트: {endpoint_url}")
+            print(f"   보안 모드: {security_mode}")
+            print(f"   보안 정책: {security_policy_name}")
+            
+            # 서버 인증서가 있으면 정보 표시
+            server_cert = getattr(endpoint, 'ServerCertificate', None)
+            if server_cert:
+                # 바이너리 데이터가 있으면 간단한 정보만 표시
+                cert_size = len(server_cert) if isinstance(server_cert, bytes) else "정보 없음"
+                print(f"   서버 인증서: {cert_size} 바이트")
+            
+            # 사용자 인증 유형 정보
+            user_token_types = []
+            user_identity_tokens = getattr(endpoint, 'UserIdentityTokens', [])
+            for token in user_identity_tokens:
+                token_type = getattr(token, 'TokenType', None)
+                if token_type is not None:
+                    if isinstance(token_type, int):
+                        # TokenType이 정수인 경우 이름으로 변환
+                        try:
+                            token_type_name = ua.UserTokenType(token_type).name
+                        except ValueError:
+                            token_type_name = f"Unknown({token_type})"
+                    else:
+                        token_type_name = str(token_type)
+                    user_token_types.append(token_type_name)
+            
+            if user_token_types:
+                print(f"   인증 유형: {', '.join(user_token_types)}")
+            
+            print()  # 엔드포인트 간 구분을 위한 빈 줄
+            
+    except Exception as e:
+        logger.error(f"엔드포인트 조회 중 오류 발생: {e}")
+        print(f"엔드포인트를 가져오는 중 오류가 발생했습니다: {e}")
+
 async def main():
     global session_manager, current_session_id, subscription_lists
     
@@ -1333,7 +1406,7 @@ async def main():
             choice = await display_menu()
             
             try:
-                if choice == '0' or choice.lower() == 'q':
+                if choice == '99' or choice.lower() == 'q':
                     # Clean up before exit
                     try:
                         await session_manager.close_all_sessions()
@@ -1341,6 +1414,9 @@ async def main():
                         logger.warning(f"Error closing sessions: {e}")
                     print("\nExiting OPC UA Client. Goodbye!")
                     break
+                
+                elif choice == '0':  # List Endpoints
+                    await list_endpoints()
                 
                 elif choice == '1':  # Connect to Server (New Session)
                     await connect_to_server()

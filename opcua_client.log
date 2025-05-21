@@ -3136,3 +3136,59 @@ Traceback (most recent call last):
 2025-05-21 17:06:39,947 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
 2025-05-21 17:06:59,693 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
 2025-05-21 17:06:59,734 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287582, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 17:17:33,642 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 131 is already done
+2025-05-21 17:17:33,642 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 130 is already done
+2025-05-21 17:17:39,011 - asyncua.client.ua_client.UaClient - WARNING - close_session but connection wasn't established
+2025-05-21 17:17:39,011 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:20:37,593 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:20:37,593 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:20:37,593 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:22:23,669 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 43.4초): Connection is closed
+2025-05-21 17:22:23,670 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:22:23,670 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:22:23,670 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:23:55,117 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:23:55,118 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:23:55,118 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:23:58,551 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:23:58,551 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:23:58,551 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:24:08,440 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 85.9초): Connection is closed
+2025-05-21 17:24:08,440 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:24:08,441 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:24:08,441 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:24:55,383 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 17:24:55,383 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 38.2초): Connection is closed
+2025-05-21 17:24:55,384 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:24:55,384 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:24:55,384 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:24:55,384 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:24:55,384 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:24:55,384 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:24:58,855 - __main__ - ERROR - Failed to browse nodes: ('Error parsing string q', ValueError('not enough values to unpack (expected 2, got 1)'))
+2025-05-21 17:26:43,717 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 17:26:43,717 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 95.8초): Connection is closed
+2025-05-21 17:26:43,718 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:26:43,718 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:26:43,718 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:26:43,718 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:26:43,718 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:26:43,718 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:26:46,616 - __main__ - ERROR - Failed to read node value: ('Error parsing string q', ValueError('not enough values to unpack (expected 2, got 1)'))
+2025-05-21 17:29:04,537 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 17:29:04,537 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 129.2초): Connection is closed
+2025-05-21 17:29:04,537 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:29:04,537 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:29:04,538 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:29:04,538 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:29:04,538 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:29:04,538 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:29:08,587 - __main__ - ERROR - Failed to read node value: ('Error parsing string q', ValueError('not enough values to unpack (expected 2, got 1)'))
+2025-05-21 17:54:05,533 - asyncua.client.ua_client.UaClient - WARNING - close_session but connection wasn't established
+2025-05-21 17:54:05,533 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:54:07,256 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:54:07,256 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:54:07,256 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 17:54:07,256 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 17:54:07,257 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 17:54:07,257 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
