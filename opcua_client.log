@@ -2924,3 +2924,147 @@ Traceback (most recent call last):
 2025-05-13 16:48:19,291 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 103 is already done
 2025-05-15 09:36:33,874 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3078045413, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
 2025-05-15 09:38:50,166 - __main__ - ERROR - Failed to call method: Could not find identifier in string: 
+2025-05-21 15:12:45,577 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 15:12:45,578 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:12:45,578 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:12:45,578 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:13:07,279 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 15:13:07,279 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:13:07,280 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:13:07,280 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:13:07,337 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287530, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:13:16,684 - __main__ - ERROR - Error adding monitored item: invalid literal for int() with base 10: 'ns=5;i=1242'
+2025-05-21 15:13:40,633 - __main__ - ERROR - Error adding monitored item: invalid literal for int() with base 10: 'ns=5;i=1242'
+2025-05-21 15:14:31,792 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287531, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:15:43,381 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 15:15:43,381 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 69.8초): Connection is closed
+2025-05-21 15:15:43,381 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:15:43,381 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:15:43,381 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:15:43,381 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:15:43,381 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:15:43,381 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:15:43,385 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287532, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:16:01,186 - opcua_client.subscription - WARNING - Node exists but may not be readable: Connection is closed
+2025-05-21 15:16:05,191 - opcua_client.subscription - ERROR - All subscription approaches failed: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:16:05,191 - opcua_client.subscription - ERROR - Failed to subscribe to data changes: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:16:05,191 - __main__ - ERROR - Error adding monitored item: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:17:16,591 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-8' coro=<Client._monitor_server_loop() done, defined at /home/mk/venv/opcua/lib/python3.10/site-packages/asyncua/client/client.py:567> exception=ConnectionError('Connection is closed')>
+Traceback (most recent call last):
+  File "/home/mk/venv/opcua/lib/python3.10/site-packages/asyncua/client/client.py", line 576, in _monitor_server_loop
+    _ = await self.nodes.server_state.read_valu... [상세 예외 정보 필터링됨]
+2025-05-21 15:17:16,602 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-12' coro=<Client._monitor_server_loop() done, defined at /home/mk/venv/opcua/lib/python3.10/site-packages/asyncua/client/client.py:567> exception=ConnectionError('Connection is closed')>
+Traceback (most recent call last):
+  File "/home/mk/venv/opcua/lib/python3.10/site-packages/asyncua/client/client.py", line 576, in _monitor_server_loop
+    _ = await self.nodes.server_state.read_valu... [상세 예외 정보 필터링됨]
+2025-05-21 15:17:40,258 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287533, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:18:14,819 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287534, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:21:16,641 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 19 is already done
+2025-05-21 15:21:16,641 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 83 is already done
+2025-05-21 15:21:27,186 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287539, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:22:21,303 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287540, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:25:25,399 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 15:25:25,400 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 159.4초): Connection is closed
+2025-05-21 15:25:25,401 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:25:25,401 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:25:25,401 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:25:25,401 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:25:25,401 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:25:25,401 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:25:25,416 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287541, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:25:31,117 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287542, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:25:47,730 - opcua_client.subscription - WARNING - Node exists but may not be readable: Connection is closed
+2025-05-21 15:25:51,737 - opcua_client.subscription - ERROR - All subscription approaches failed: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:25:51,737 - opcua_client.subscription - ERROR - Failed to subscribe to data changes: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:25:51,738 - __main__ - ERROR - Failed to add monitored item: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:07,339 - opcua_client.subscription - WARNING - Node exists but may not be readable: Connection is closed
+2025-05-21 15:26:11,345 - opcua_client.subscription - ERROR - All subscription approaches failed: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:11,345 - opcua_client.subscription - ERROR - Failed to subscribe to data changes: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:11,345 - __main__ - ERROR - Failed to add monitored item: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:33,040 - opcua_client.subscription - WARNING - Node exists but may not be readable: Connection is closed
+2025-05-21 15:26:37,047 - opcua_client.subscription - ERROR - All subscription approaches failed: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:37,047 - opcua_client.subscription - ERROR - Failed to subscribe to data changes: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:37,047 - __main__ - ERROR - Failed to add monitored item: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:50,079 - opcua_client.subscription - WARNING - Node exists but may not be readable: Connection is closed
+2025-05-21 15:26:54,085 - opcua_client.subscription - ERROR - All subscription approaches failed: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:54,085 - opcua_client.subscription - ERROR - Failed to subscribe to data changes: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:26:54,085 - __main__ - ERROR - Failed to add monitored item: Could not create subscription: Approach 1 failed: Connection is closed; Approach 2 failed: Connection is closed; Approach 3 failed: Connection is closed; Approach 4 failed: Connection is closed
+2025-05-21 15:27:06,050 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-21 15:27:06,051 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:27:06,051 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:27:06,051 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:27:06,063 - __main__ - ERROR - Error processing choice: name 'recreate_subscriptions' is not defined
+2025-05-21 15:27:18,109 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-6' coro=<UaClient._publish_loop() done, defined at /home/mk/venv/opcua/lib/python3.10/site-packages/asyncua/client/ua_client.py:603> exception=ConnectionError('Connection is closed')>
+Traceback (most recent call last):
+  File "/home/mk/venv/opcua/lib/python3.10/site-packages/asyncua/client/client.py", line 718, in close_session
+    await self._monitor_server_task
+ConnectionError: Connection is closed
+2025-05-21 15:27:34,176 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287543, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:28:06,106 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287544, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:28:15,241 - opcua_client.subscription - ERROR - All subscription approaches failed: Approach 1 failed: Failed to send request to OPC UA server; Approach 2 failed: Failed to send request to OPC UA server; Approach 3 failed: Failed to send request to OPC UA server; Approach 4 failed: The attribute is not supported for the specified Node.(BadAttributeIdInvalid)
+2025-05-21 15:28:15,241 - opcua_client.subscription - ERROR - Failed to subscribe to data changes: Could not create subscription: Approach 1 failed: Failed to send request to OPC UA server; Approach 2 failed: Failed to send request to OPC UA server; Approach 3 failed: Failed to send request to OPC UA server; Approach 4 failed: The attribute is not supported for the specified Node.(BadAttributeIdInvalid)
+2025-05-21 15:28:15,241 - __main__ - ERROR - Error adding monitored item: Could not create subscription: Approach 1 failed: Failed to send request to OPC UA server; Approach 2 failed: Failed to send request to OPC UA server; Approach 3 failed: Failed to send request to OPC UA server; Approach 4 failed: The attribute is not supported for the specified Node.(BadAttributeIdInvalid)
+2025-05-21 15:28:21,190 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287545, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:28:31,242 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287546, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:28:57,117 - opcua_client.subscription - WARNING - Cannot modify subscription: no suitable API found
+2025-05-21 15:36:43,819 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:36:43,819 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:36:43,819 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:36:43,820 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:36:43,820 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:36:43,820 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:36:55,374 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287547, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:39:45,406 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287548, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:40:43,336 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287549, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:44:20,386 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:44:20,387 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:44:20,387 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:44:28,428 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287550, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:48:37,652 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 15:48:37,652 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 15:48:37,652 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:48:45,341 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287551, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:49:38,035 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-1' coro=<main() done, defined at /home/mk/dev_ws/prject/opcua_client/opcua_client_python/opcua_app.py:1116> exception=KeyboardInterrupt()>
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 6... [상세 예외 정보 필터링됨]
+2025-05-21 15:49:46,541 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287552, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:49:53,569 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287553, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:49:53,613 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+2025-05-21 15:53:27,581 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 15:53:37,124 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287554, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 15:55:08,683 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287555, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:02:57,794 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:02:57,794 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:02:57,794 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:02:57,795 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-21 16:02:57,795 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-21 16:02:57,795 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-21 16:03:10,644 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287556, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:03:23,389 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287557, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:03:33,766 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287558, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:03:33,766 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+2025-05-21 16:03:51,641 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287559, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:07:53,686 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 23005 is already done
+2025-05-21 16:08:05,435 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287560, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:10:52,902 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 23137 is already done
+2025-05-21 16:11:00,412 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287561, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:26:42,197 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287562, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:26:49,937 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287563, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:29:32,955 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 395 is already done
+2025-05-21 16:29:32,955 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 394 is already done
+2025-05-21 16:29:40,611 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287564, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:29:50,471 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287565, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:29:50,472 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+2025-05-21 16:30:00,467 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287566, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:30:13,576 - __main__ - ERROR - Failed to browse nodes: invalid literal for int() with base 10: 'q'
+2025-05-21 16:32:01,345 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 71 is already done
+2025-05-21 16:32:01,345 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 72 is already done
+2025-05-21 16:32:01,345 - asyncua.client.ua_client.UASocketProtocol - WARNING - Future for request id 73 is already done
+2025-05-21 16:32:09,353 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287567, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-21 16:33:03,731 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1650287568, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
