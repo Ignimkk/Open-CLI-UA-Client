@@ -3192,3 +3192,55 @@ Traceback (most recent call last):
 2025-05-21 17:54:07,256 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
 2025-05-21 17:54:07,257 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
 2025-05-21 17:54:07,257 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:08:51,805 - asyncua.client.ua_client.UaClient - WARNING - close_session but connection wasn't established
+2025-05-22 11:08:51,805 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:10:34,707 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835674, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 11:11:00,622 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+2025-05-22 11:13:50,463 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-22 11:13:50,464 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 169.9초): Connection is closed
+2025-05-22 11:13:50,464 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:13:50,464 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:13:50,464 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:13:50,465 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:13:50,465 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:13:50,465 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:13:50,521 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835677, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 11:14:28,880 - opcua_client.node - ERROR - Failed to write node attribute: The value supplied for the attribute is not of the same type as the attribute"s value.(BadTypeMismatch)
+2025-05-22 11:14:28,880 - __main__ - ERROR - Failed to write node value: The value supplied for the attribute is not of the same type as the attribute"s value.(BadTypeMismatch)
+2025-05-22 11:15:02,996 - opcua_client.node - ERROR - Failed to write node attribute: The value supplied for the attribute is not of the same type as the attribute"s value.(BadTypeMismatch)
+2025-05-22 11:15:02,996 - __main__ - ERROR - Failed to write node value: The value supplied for the attribute is not of the same type as the attribute"s value.(BadTypeMismatch)
+2025-05-22 11:18:56,568 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-22 11:18:56,568 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 243.9초): Connection is closed
+2025-05-22 11:18:56,568 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:18:56,568 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:18:56,568 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:18:56,569 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:18:56,569 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:18:56,569 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:19:11,405 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835678, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 11:21:59,377 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:21:59,377 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:21:59,377 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:22:11,050 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835679, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 11:25:16,769 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:25:16,769 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:25:16,769 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:25:33,834 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835680, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 11:28:16,002 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:28:16,003 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:28:16,003 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:28:28,890 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835681, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 11:30:42,201 - asyncua.client.ua_client.UASocketProtocol - WARNING - ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+2025-05-22 11:58:42,329 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 11:58:42,329 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 11:58:42,330 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 11:58:49,640 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835682, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-05-22 12:00:00,842 - __main__ - WARNING - Connection check failed: Connection is closed
+2025-05-22 12:00:00,843 - opcua_client.connection - WARNING - Keep-alive 요청 실패 (마지막 성공으로부터 56.1초): Connection is closed
+2025-05-22 12:00:00,843 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 12:00:00,843 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 12:00:00,843 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 12:00:00,843 - asyncua.client.ua_client.UaClient - WARNING - close_session was called but connection is closed
+2025-05-22 12:00:00,843 - asyncua.client.ua_client.UaClient - WARNING - close_secure_channel was called but connection is closed
+2025-05-22 12:00:00,843 - asyncua.client.ua_client.UaClient - WARNING - disconnect_socket was called but connection is closed
+2025-05-22 12:00:07,173 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=3537835683, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)

@@ -230,6 +230,13 @@ async def get_all_node_attributes(client: Client, node_id: str) -> Dict[str, Any
     node = client.get_node(node_id)
     attributes = {}
     
+    try:
+        # 기본 정보 먼저 추가
+        node_id_str = str(node.nodeid)
+        attributes["NodeId"] = node_id_str
+    except Exception as e:
+        logger.debug(f"Failed to convert NodeId to string: {e}")
+    
     # 표준 OPC UA 속성 목록
     attr_dict = {
         ua.AttributeIds.NodeId: "NodeId",
@@ -246,21 +253,62 @@ async def get_all_node_attributes(client: Client, node_id: str) -> Dict[str, Any
         ua.AttributeIds.AccessLevel: "AccessLevel",
         ua.AttributeIds.UserAccessLevel: "UserAccessLevel",
         ua.AttributeIds.MinimumSamplingInterval: "MinimumSamplingInterval",
-        ua.AttributeIds.Historizing: "Historizing"
+        ua.AttributeIds.Historizing: "Historizing",
+        ua.AttributeIds.Executable: "Executable",
+        ua.AttributeIds.UserExecutable: "UserExecutable",
+        ua.AttributeIds.EventNotifier: "EventNotifier",
+        ua.AttributeIds.IsAbstract: "IsAbstract"
     }
     
+    # 중요 속성 먼저 가져오기 시도 (표시 이름, 값, 데이터 타입)
+    important_attrs = [
+        ua.AttributeIds.BrowseName,
+        ua.AttributeIds.DisplayName,
+        ua.AttributeIds.Value,
+        ua.AttributeIds.DataType,
+        ua.AttributeIds.NodeClass
+    ]
+    
+    for attr_id in important_attrs:
+        attr_name = attr_dict.get(attr_id)
+        if attr_name:
+            try:
+                value = await node.read_attribute(attr_id)
+                if not value.Value.is_empty():
+                    if attr_id == ua.AttributeIds.NodeClass:
+                        attributes[attr_name] = ua.NodeClass(value.Value.Value).name
+                    elif attr_id == ua.AttributeIds.BrowseName:
+                        attributes[attr_name] = value.Value.Value.Name
+                    elif attr_id == ua.AttributeIds.DisplayName:
+                        attributes[attr_name] = value.Value.Value.Text
+                    elif attr_id == ua.AttributeIds.Value:
+                        attributes[attr_name] = value.Value.Value
+                    elif attr_id == ua.AttributeIds.DataType:
+                        attributes[attr_name] = value.Value.Value
+                        # 데이터 타입 이름 직접 조회
+                        try:
+                            data_type_id = value.Value.Value
+                            data_type_node = client.get_node(data_type_id)
+                            data_type_name = await data_type_node.read_browse_name()
+                            attributes["DataTypeName"] = data_type_name.Name
+                        except Exception as e:
+                            logger.debug(f"Failed to get DataTypeName: {e}")
+            except Exception as e:
+                logger.debug(f"Failed to read important attribute {attr_name}: {e}")
+    
+    # 각 속성 읽기 시도 (중요하지 않은 나머지 속성들)
     for attr_id, attr_name in attr_dict.items():
+        # 이미 처리한 중요 속성은 건너뛰기
+        if attr_id in important_attrs:
+            continue
+            
         try:
             value = await node.read_attribute(attr_id)
+            
+            # 값이 비어있지 않은 경우만 처리
             if not value.Value.is_empty():
                 # 속성 타입에 따른 가공
-                if attr_id == ua.AttributeIds.NodeClass:
-                    attributes[attr_name] = ua.NodeClass(value.Value.Value).name
-                elif attr_id == ua.AttributeIds.BrowseName:
-                    attributes[attr_name] = value.Value.Value.Name
-                elif attr_id == ua.AttributeIds.DisplayName or attr_id == ua.AttributeIds.Description:
-                    attributes[attr_name] = value.Value.Value.Text
-                elif attr_id == ua.AttributeIds.AccessLevel or attr_id == ua.AttributeIds.UserAccessLevel:
+                if attr_id == ua.AttributeIds.AccessLevel or attr_id == ua.AttributeIds.UserAccessLevel:
                     access_level = value.Value.Value
                     access_texts = []
                     if access_level & ua.AccessLevel.CurrentRead:
@@ -279,6 +327,45 @@ async def get_all_node_attributes(client: Client, node_id: str) -> Dict[str, Any
         except Exception as e:
             # 속성이 지원되지 않는 경우 무시하고 다음 속성으로 이동
             logger.debug(f"Attribute {attr_name} not supported: {e}")
+    
+    # 추가 정보 가져오기 시도
+    try:
+        # 부모 노드 정보 가져오기
+        try:
+            references = await node.get_references(refs=ua.ObjectIds.HasTypeDefinition)
+            if references:
+                type_def = references[0].NodeId
+                attributes["TypeDefinition"] = str(type_def)
+                
+                # 타입 정의 이름 가져오기
+                try:
+                    type_node = client.get_node(type_def)
+                    type_name = await type_node.read_browse_name()
+                    attributes["TypeName"] = type_name.Name
+                except Exception as e:
+                    logger.debug(f"Failed to get TypeName: {e}")
+        except Exception as e:
+            logger.debug(f"Failed to get TypeDefinition: {e}")
+            
+        # 참조 개수 추가
+        try:
+            references = await node.get_references()
+            attributes["ReferenceCount"] = len(references)
+        except Exception as e:
+            logger.debug(f"Failed to get references: {e}")
+    except Exception as e:
+        logger.debug(f"Failed to get additional attributes: {e}")
+    
+    # 적어도 하나 이상의 속성이 없으면 빈 dict 대신 기본 정보라도 채우기
+    if not attributes or len(attributes) < 3:  # 최소한의 정보가 필요
+        try:
+            info = await get_node_info(client, node_id)
+            if info:
+                for key, value in info.items():
+                    if key not in attributes:
+                        attributes[key] = value
+        except Exception as e:
+            logger.debug(f"Failed to get fallback info: {e}")
     
     return attributes
 
