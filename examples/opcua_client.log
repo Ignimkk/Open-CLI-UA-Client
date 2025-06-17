@@ -1,0 +1,48 @@
+2025-06-05 14:13:08,424 - opcua_client.utils - INFO - 로깅 시스템이 초기화되었습니다. 바이너리 데이터 필터링이 활성화되었습니다.
+2025-06-05 14:13:08,424 - opcua_client.connection - INFO - Creating client for URL: opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:13:08,424 - opcua_client.connection - INFO - Connecting to opc.tcp://mkketi:62541/Quickstarts/ReferenceServer...
+2025-06-05 14:13:08,430 - asyncua.uaprotocol - INFO - updating client limits to: TransportLimits(max_recv_buffer=65535, max_send_buffer=65535, max_chunk_count=0, max_message_size=0)
+2025-06-05 14:13:08,439 - opcua_client.connection - INFO - Successfully connected to opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:13:08,440 - opcua_client.connection - INFO - Connection verified. Server has 12 namespaces: [http://opcfoundation, urn:mkketi:UA:Quicks, http://opcfoundation...]
+2025-06-05 14:13:08,440 - opcua_client.connection - INFO - Keep-alive mechanism activated for opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:13:08,441 - opcua_client.connection - INFO - 순수 Keep-Alive 태스크 시작, 간격: 3.0초 (데이터 발행 없음)
+2025-06-05 14:13:08,443 - asyncua.common.subscription - INFO - Subscription created 4139281038
+2025-06-05 14:13:08,443 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=4139281038, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-06-05 14:13:08,443 - opcua_client.subscription - INFO - Keep-Alive 전용 구독 생성: ID=4139281038, interval=500ms, keep_alive_count=2
+2025-06-05 14:13:08,443 - opcua_client.subscription - INFO - 예상 Keep-Alive 간격: 1.0초
+2025-06-05 14:13:08,945 - asyncua.common.subscription - INFO - Publish callback called with result: PublishResult(SubscriptionId=4139281038, AvailableSequenceNumbers=[], MoreNotifications=False, NotificationMessage_=NotificationMessage(SequenceNumber=1, PublishTime=datetime.datetime(2025, 6, 5, 5, 13, 8, 944363, tzinfo=datetime.timezone.utc), NotificationData=[]), Results=[], DiagnosticInfos=[])
+2025-06-05 14:13:20,142 - opcua_client.connection - INFO - 순수 Keep-Alive 태스크가 취소되었습니다.
+2025-06-05 14:13:20,144 - opcua_client.subscription - INFO - Deleted subscription 4139281038
+2025-06-05 14:13:20,146 - opcua_client.connection - INFO - Session closed and keep-alive tasks cancelled
+2025-06-05 14:18:21,423 - opcua_client.utils - INFO - 로깅 시스템이 초기화되었습니다. 바이너리 데이터 필터링이 활성화되었습니다.
+2025-06-05 14:18:21,423 - opcua_client.connection - INFO - Creating client for URL: opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:18:21,424 - opcua_client.connection - INFO - Connecting to opc.tcp://mkketi:62541/Quickstarts/ReferenceServer...
+2025-06-05 14:18:21,429 - asyncua.uaprotocol - INFO - updating client limits to: TransportLimits(max_recv_buffer=65535, max_send_buffer=65535, max_chunk_count=0, max_message_size=0)
+2025-06-05 14:18:21,437 - opcua_client.connection - INFO - Successfully connected to opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:18:21,439 - opcua_client.connection - INFO - Connection verified. Server has 12 namespaces: [http://opcfoundation, urn:mkketi:UA:Quicks, http://opcfoundation...]
+2025-06-05 14:18:21,439 - opcua_client.connection - INFO - Keep-alive mechanism activated for opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:18:21,439 - opcua_client.connection - INFO - 순수 Keep-Alive 태스크 시작, 간격: 3.0초 (데이터 발행 없음)
+2025-06-05 14:18:21,441 - asyncua.common.subscription - INFO - Subscription created 4139281040
+2025-06-05 14:18:21,441 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=4139281040, RevisedPublishingInterval=500.0, RevisedLifetimeCount=16200, RevisedMaxKeepAliveCount=5400)
+2025-06-05 14:18:21,441 - opcua_client.subscription - INFO - Keep-Alive 전용 구독 생성: ID=4139281040, interval=500ms, keep_alive_count=2
+2025-06-05 14:18:21,441 - opcua_client.subscription - INFO - 예상 Keep-Alive 간격: 1.0초
+2025-06-05 14:18:21,978 - asyncua.common.subscription - INFO - Publish callback called with result: PublishResult(SubscriptionId=4139281040, AvailableSequenceNumbers=[], MoreNotifications=False, NotificationMessage_=NotificationMessage(SequenceNumber=1, PublishTime=datetime.datetime(2025, 6, 5, 5, 18, 21, 976907, tzinfo=datetime.timezone.utc), NotificationData=[]), Results=[], DiagnosticInfos=[])
+2025-06-05 14:18:36,651 - opcua_client.connection - INFO - 순수 Keep-Alive 태스크가 취소되었습니다.
+2025-06-05 14:18:36,652 - opcua_client.connection - INFO - Keep-alive task for opc.tcp://mkketi:62541/Quickstarts/ReferenceServer cancelled
+2025-06-05 14:18:36,655 - opcua_client.connection - INFO - Session closed and keep-alive tasks cancelled
+2025-06-05 14:40:03,358 - opcua_client.utils - INFO - 로깅 시스템이 초기화되었습니다. 바이너리 데이터 필터링이 활성화되었습니다.
+2025-06-05 14:40:03,358 - opcua_client.connection - INFO - Creating client for URL: opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:40:03,358 - opcua_client.connection - INFO - Connecting to opc.tcp://mkketi:62541/Quickstarts/ReferenceServer...
+2025-06-05 14:40:03,364 - asyncua.uaprotocol - INFO - updating client limits to: TransportLimits(max_recv_buffer=65535, max_send_buffer=65535, max_chunk_count=0, max_message_size=0)
+2025-06-05 14:40:03,371 - opcua_client.connection - INFO - Successfully connected to opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:40:03,373 - opcua_client.connection - INFO - Connection verified. Server has 12 namespaces: [http://opcfoundation, urn:mkketi:UA:Quicks, http://opcfoundation...]
+2025-06-05 14:40:03,373 - opcua_client.connection - INFO - Keep-alive mechanism activated for opc.tcp://mkketi:62541/Quickstarts/ReferenceServer
+2025-06-05 14:40:03,373 - opcua_client.connection - INFO - 순수 Keep-Alive 태스크 시작, 간격: 3.0초 (데이터 발행 없음)
+2025-06-05 14:40:03,375 - asyncua.common.subscription - INFO - Subscription created 4139281042
+2025-06-05 14:40:03,375 - asyncua.client.client - WARNING - Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=4139281042, RevisedPublishingInterval=100.0, RevisedLifetimeCount=81000, RevisedMaxKeepAliveCount=27000)
+2025-06-05 14:40:03,376 - opcua_client.subscription - INFO - Keep-Alive 전용 구독 생성: ID=4139281042, interval=100ms, keep_alive_count=1
+2025-06-05 14:40:03,376 - opcua_client.subscription - INFO - 예상 Keep-Alive 간격: 0.1초
+2025-06-05 14:40:03,502 - asyncua.common.subscription - INFO - Publish callback called with result: PublishResult(SubscriptionId=4139281042, AvailableSequenceNumbers=[], MoreNotifications=False, NotificationMessage_=NotificationMessage(SequenceNumber=1, PublishTime=datetime.datetime(2025, 6, 5, 5, 40, 3, 500392, tzinfo=datetime.timezone.utc), NotificationData=[]), Results=[], DiagnosticInfos=[])
+2025-06-05 14:40:12,913 - opcua_client.connection - INFO - 순수 Keep-Alive 태스크가 취소되었습니다.
+2025-06-05 14:40:12,914 - opcua_client.connection - INFO - Keep-alive task for opc.tcp://mkketi:62541/Quickstarts/ReferenceServer cancelled
+2025-06-05 14:40:12,918 - opcua_client.connection - INFO - Session closed and keep-alive tasks cancelled

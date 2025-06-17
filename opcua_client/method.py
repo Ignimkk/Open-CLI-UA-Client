@@ -238,14 +238,23 @@ async def find_methods(client: Client, parent_id: Optional[str] = None) -> List[
         for ref in references:
             if ref.NodeClass == ua.NodeClass.Object:
                 try:
-                    child_methods = await find_methods(client, str(ref.NodeId))
+                    # Convert NodeId properly to string
+                    child_node_id = str(ref.NodeId)
+                    child_methods = await find_methods(client, child_node_id)
                     methods.extend(child_methods)
                 except Exception as e:
                     logger.debug(f"Failed to get methods from child node {ref.NodeId}: {e}")
         
         return methods
     except Exception as e:
-        logger.error(f"Failed to find methods under {parent_id}: {e}")
+        # More detailed error information
+        error_msg = f"Failed to find methods under {parent_id}: {e}"
+        logger.error(error_msg)
+        
+        # If it's a NodeId parsing issue, provide a helpful hint
+        if "Could not find identifier in string" in str(e):
+            logger.error("Hint: Make sure the parent_id is a valid Object node, not a Method node")
+            
         return []
 
 

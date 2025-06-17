@@ -32,11 +32,20 @@ from opcua_client import subscription
 from opcua_client import event
 from opcua_client import utils
 
+# 구독 기본값 상수 import
+from opcua_client.subscription import (
+    DEFAULT_PUBLISHING_INTERVAL, 
+    DEFAULT_LIFETIME_COUNT, 
+    DEFAULT_MAX_KEEP_ALIVE_COUNT, 
+    DEFAULT_PRIORITY,
+    get_fallback_parameters
+)
+
 # 로깅 설정 (바이너리 데이터 필터링 포함)
-utils.setup_logging(logging.WARNING)
+utils.setup_logging(logging.WARNING)  # DEBUG에서 WARNING으로 다시 변경
 logger = logging.getLogger(__name__)
 
-DEFAULT_SERVER_URL = "opc.tcp://mk:62541/Quickstarts/ReferenceServer"
+DEFAULT_SERVER_URL = "opc.tcp://mkketi:62541/Quickstarts/ReferenceServer"
 
 # 전역 변수로 세션 관리
 session_manager = connection.MultiSessionManager()
@@ -67,6 +76,7 @@ async def display_menu():
     print("12. Delete Subscription")
     print("13. Execute Example Script")
     print("14. Enter Monitoring Mode")
+    print("15. Event View (이벤트 전용 뷰)")
     print("99. Exit")
     print("====================================")
     return input("Enter your choice: ")
@@ -109,6 +119,7 @@ async def connect_to_server():
             server_status = await client.get_node("i=2256").read_value()  # ServerStatusDataType
             print(f"Server: {server_status.BuildInfo.ProductName} {server_status.BuildInfo.SoftwareVersion}")
             print(f"Current time: {server_status.CurrentTime}")
+            
             print(f"State: {server_status.State.name}")
         except Exception as status_err:
             logger.warning(f"Could not read server status: {status_err}")
@@ -151,6 +162,7 @@ async def disconnect_from_server():
                     await subscription.delete_subscription(sub['subscription'])
                 except Exception as e:
                     logger.warning(f"Error deleting subscription: {e}")
+        
         
         # 세션 닫기
         await session_manager.close_session(current_session_id)
@@ -590,7 +602,7 @@ async def browse_nodes(client_connection):
         node_id = input("Enter node ID to browse (default is root node): ") or None
         
         # 추가 옵션 제공
-        browse_type = input("Browse type (1=Basic, 2=Recursive): ") or "1"
+        browse_type = input("Browse type (1=Basic, 2=Tree): ") or "1"
         
         # 연결 확인 및 재연결 시도
         try:
@@ -785,10 +797,24 @@ async def call_method(client_connection):
         print(f"Error: {e}")
 
 async def create_subscription(client_connection, subscription_list, 
-                          publishing_interval=500, lifetime_count=10, 
-                          max_keep_alive_count=3, priority=0):
+                          publishing_interval=DEFAULT_PUBLISHING_INTERVAL, 
+                          lifetime_count=DEFAULT_LIFETIME_COUNT, 
+                          max_keep_alive_count=DEFAULT_MAX_KEEP_ALIVE_COUNT, 
+                          priority=DEFAULT_PRIORITY):
     """
     새로운 구독을 생성합니다.
+    
+    Args:
+        client_connection: OPC UA 클라이언트 연결
+        subscription_list: 구독 목록
+        publishing_interval: 발행 간격 (ms) - 기본값 1000ms
+        lifetime_count: 수명 카운트 - 기본값 600 (10분)
+        max_keep_alive_count: 최대 Keep-Alive 카운트 - 기본값 20 (20초)
+        priority: 우선순위 - 기본값 0
+        
+    Note:
+        OPC UA 스펙에 따라 lifetime_count는 max_keep_alive_count의 최소 3배 이상이어야 합니다.
+        기본값: lifetime_count(600) / max_keep_alive_count(20) = 30 (권장값 충족)
     """
     if not client_connection:
         print("서버에 연결되어 있지 않습니다. 먼저 서버에 연결하세요.")
@@ -817,9 +843,9 @@ async def create_subscription(client_connection, subscription_list,
         
         subscription_list.append(subscription_info)
         print(f"구독이 생성되었습니다. ID: {sub.subscription_id}")
-        
+                
         # 모니터링 항목 추가 여부 확인
-        add_item = input("모니터링 항목을 추가하시겠습니까? (y/n): ").lower() == 'y'
+        add_item = input("\n모니터링 항목을 추가하시겠습니까? (y/n): ").lower() == 'y'
         if add_item:
             await add_monitored_item(client_connection, subscription_list)
             
@@ -956,11 +982,8 @@ async def add_monitored_item(client_connection, subscription_list):
             print("구독을 재생성합니다...")
             
             try:
-                # 구독 파라미터 사용
-                publishing_interval = selected_sub_info.get("publishing_interval", 500)
-                lifetime_count = selected_sub_info.get("lifetime_count", 10)
-                max_keep_alive_count = selected_sub_info.get("max_keep_alive_count", 3)
-                priority = selected_sub_info.get("priority", 0)
+                # 구독 파라미터 사용 - 헬퍼 함수 사용으로 중복 제거
+                publishing_interval, lifetime_count, max_keep_alive_count, priority = get_fallback_parameters(selected_sub_info)
                 
                 # 새 구독 생성
                 new_sub = await subscription.create_subscription(
@@ -1136,14 +1159,19 @@ async def modify_subscription(subscription_list):
         print("2. 모니터링 항목 추가")
         print("3. 모니터링 항목 삭제")
         print("4. 발행 모드 설정 (활성화/비활성화)")
+        print("5. 모니터링 항목 설정 수정 (샘플링 간격)")
+        print("6. 모니터링 모드 설정 (Disabled/Sampling/Reporting)")
+        print("7. 구독 정보 표시 (Keep-Alive 간격 포함)")
         
         mod_type = input("\n선택: ")
         
         if mod_type == "1":
             # 구독 속성 수정
-            new_period = float(input(f"발행 간격(ms) [{selected_sub.get('publishing_interval', 500)}]: ") or selected_sub.get('publishing_interval', 500))
-            new_lifetime = int(input(f"수명 카운트 [{selected_sub.get('lifetime_count', 10)}]: ") or selected_sub.get('lifetime_count', 10))
-            new_keepalive = int(input(f"최대 Keep-Alive 카운트 [{selected_sub.get('max_keep_alive_count', 3)}]: ") or selected_sub.get('max_keep_alive_count', 3))
+            new_period = float(input(f"발행 간격(ms) [{selected_sub.get('publishing_interval', DEFAULT_PUBLISHING_INTERVAL)}]: ") or selected_sub.get('publishing_interval', DEFAULT_PUBLISHING_INTERVAL))
+            new_lifetime = int(input(f"수명 카운트 [{selected_sub.get('lifetime_count', DEFAULT_LIFETIME_COUNT)}]: ") or selected_sub.get('lifetime_count', DEFAULT_LIFETIME_COUNT))
+            new_keepalive = int(input(f"최대 Keep-Alive 카운트 [{selected_sub.get('max_keep_alive_count', DEFAULT_MAX_KEEP_ALIVE_COUNT)}]: ") or selected_sub.get('max_keep_alive_count', DEFAULT_MAX_KEEP_ALIVE_COUNT))
+            
+            print(f"\n구독 속성을 수정하는 중...")
             
             # 속성 수정 시도
             result = await subscription.modify_subscription(
@@ -1158,10 +1186,14 @@ async def modify_subscription(subscription_list):
                 selected_sub["publishing_interval"] = new_period
                 selected_sub["lifetime_count"] = new_lifetime
                 selected_sub["max_keep_alive_count"] = new_keepalive
-                print(f"구독 {sub_object.subscription_id}의 속성이 업데이트되었습니다.")
+                print(f"\n구독 {sub_object.subscription_id}의 속성이 성공적으로 업데이트되었습니다.")
+                print(f"새로운 발행 간격: {new_period}ms")
+                print(f"새로운 수명 카운트: {new_lifetime}")
+                print(f"새로운 Keep-Alive 카운트: {new_keepalive}")
             else:
-                print(f"구독 {sub_object.subscription_id}의 속성 업데이트에 실패했습니다.")
-                
+                print(f"\n구독 {sub_object.subscription_id}의 속성 업데이트에 실패했습니다.")
+                print("주의: 일부 OPC UA 서버는 구독 속성 수정을 지원하지 않을 수 있습니다.")
+        
         elif mod_type == "2":
             # 모니터링 항목 추가
             await add_monitored_item(client_connection, subscription_list)
@@ -1202,7 +1234,7 @@ async def modify_subscription(subscription_list):
         elif mod_type == "4":
             # 발행 모드 설정
             current_mode = "활성화됨" # 기본값은 활성화라고 가정
-            new_mode_str = input(f"발행 모드 (현재: {current_mode}) [1: 활성화, 0: 비활성화]: ")
+            new_mode_str = input(f"발행 모드 [1: 활성화, 0: 비활성화]: ")
             if new_mode_str in ["0", "1"]:
                 new_mode = new_mode_str == "1"
                 result = await subscription.set_publishing_mode(sub_object, new_mode)
@@ -1214,7 +1246,158 @@ async def modify_subscription(subscription_list):
                     print(f"구독 {sub_object.subscription_id}의 발행 모드 설정에 실패했습니다.")
             else:
                 print("잘못된 모드 선택입니다.")
+        
+        elif mod_type == "5":
+            # 모니터링 항목 설정 수정
+            monitored_items = selected_sub.get("monitored_items", [])
+            if not monitored_items:
+                print("이 구독에 모니터링 항목이 없습니다.")
+                return subscription_list
                 
+            # 현재 모니터링 항목 목록 표시
+            print("\n현재 모니터링 항목:")
+            
+            for i, item in enumerate(monitored_items, 1):
+                handle = item.get('handle')
+                node_id = item.get('node_id')
+                sampling_interval = item.get('sampling_interval', 'Unknown')
+                
+                print(f"{i}. {node_id} (핸들: {handle})")
+                print(f"   현재 샘플링 간격: {sampling_interval}ms")
+            
+            try:
+                item_idx = int(input("\n수정할 항목 번호를 선택하세요: "))
+                if item_idx < 1 or item_idx > len(monitored_items):
+                    print("잘못된 선택입니다.")
+                    return subscription_list
+                    
+                # 선택된 항목 정보
+                item = monitored_items[item_idx - 1]
+                handle = item.get("handle")
+                current_sampling = item.get("sampling_interval", 100)
+                
+                print(f"\n현재 샘플링 간격: {current_sampling}ms")
+                
+                # 새로운 샘플링 간격 입력
+                new_sampling_str = input(f"새로운 샘플링 간격(ms) [{current_sampling}]: ")
+                new_sampling = float(new_sampling_str) if new_sampling_str else current_sampling
+                
+                # 모니터링 항목 수정 실행 (샘플링 간격만 수정)
+                print(f"\n모니터링 항목 (핸들: {handle})의 샘플링 간격을 수정하는 중...")
+                
+                result = await subscription.modify_monitored_item(
+                    sub_object,
+                    handle,
+                    new_sampling,
+                    0,  # 큐 크기는 기본값 사용
+                    -1  # 기존 필터 유지
+                )
+                
+                if result:
+                    # 성공 시 로컬 정보 업데이트
+                    item["sampling_interval"] = new_sampling
+                    print(f"\n모니터링 항목의 샘플링 간격이 성공적으로 수정되었습니다.")
+                    print(f"새로운 샘플링 간격: {new_sampling}ms")
+                else:
+                    print(f"\n모니터링 항목 수정에 실패했습니다.")
+                    
+            except ValueError:
+                print("잘못된 입력입니다.")
+            except Exception as e:
+                logger.error(f"Error modifying monitored item: {e}")
+                print(f"모니터링 항목 수정 중 오류 발생: {e}")
+        
+        elif mod_type == "6":
+            # 모니터링 모드 설정
+            monitored_items = selected_sub.get("monitored_items", [])
+            if not monitored_items:
+                print("이 구독에 모니터링 항목이 없습니다.")
+                return subscription_list
+                
+            # 현재 모니터링 항목 목록 표시
+            print("\n현재 모니터링 항목:")
+            for i, item in enumerate(monitored_items, 1):
+                handle = item.get('handle')
+                node_id = item.get('node_id')
+                print(f"{i}. {node_id} (핸들: {handle})")
+            
+            print("\n모니터링 모드 설정 옵션:")
+            print("1. 특정 항목 선택")
+            print("2. 모든 항목")
+            
+            target_option = input("선택: ")
+            
+            # 대상 항목 결정
+            target_handles = []
+            if target_option == "1":
+                try:
+                    item_idx = int(input("\n모드를 설정할 항목 번호를 선택하세요: "))
+                    if item_idx < 1 or item_idx > len(monitored_items):
+                        print("잘못된 선택입니다.")
+                        return subscription_list
+                    target_handles = [monitored_items[item_idx - 1].get("handle")]
+                except ValueError:
+                    print("잘못된 입력입니다.")
+                    return subscription_list
+            elif target_option == "2":
+                target_handles = [item.get("handle") for item in monitored_items]
+            else:
+                print("잘못된 선택입니다.")
+                return subscription_list
+            
+            # 모니터링 모드 선택
+            print("\n모니터링 모드 선택:")
+            print("1. Disabled - 모니터링 비활성화")
+            print("2. Sampling - 샘플링만 수행 (알림 없음)")
+            print("3. Reporting - 샘플링 + 알림 전송")
+            
+            mode_option = input("선택 [3]: ") or "3"
+            
+            mode_map = {
+                "1": "Disabled",
+                "2": "Sampling", 
+                "3": "Reporting"
+            }
+            
+            if mode_option not in mode_map:
+                print("잘못된 선택입니다.")
+                return subscription_list
+                
+            selected_mode = mode_map[mode_option]
+            
+            # 모니터링 모드 설정 실행
+            print(f"\n모니터링 모드를 {selected_mode}로 설정하는 중...")
+            
+            result = await subscription.set_monitoring_mode(sub_object, target_handles, selected_mode)
+            
+            if result:
+                item_count = len(target_handles)
+                print(f"\n{item_count}개 모니터링 항목의 모드가 {selected_mode}로 성공적으로 설정되었습니다.")
+                
+                # 모드별 설명 표시
+                if selected_mode == "Disabled":
+                    print("모니터링이 비활성화되어 데이터 변경 알림이 전송되지 않습니다.")
+                elif selected_mode == "Sampling":
+                    print("샘플링만 수행되며 데이터 변경 알림은 전송되지 않습니다.")
+                elif selected_mode == "Reporting":
+                    print("샘플링과 데이터 변경 알림이 모두 활성화되었습니다.")
+            else:
+                print(f"\n모니터링 모드 설정에 실패했습니다.")
+        
+        elif mod_type == "7":
+            # 구독 정보 표시 (Keep-Alive 간격 포함)
+            print(f"\n구독 {sub_object.subscription_id}의 정보:")
+            print(f"  발행 간격: {selected_sub.get('publishing_interval')}ms")
+            print(f"  수명 카운트: {selected_sub.get('lifetime_count')}")
+            print(f"  최대 Keep-Alive 카운트: {selected_sub.get('max_keep_alive_count')}")
+            print(f"  우선순위: {selected_sub.get('priority')}")
+            
+            # 모니터링 항목 표시
+            print("\n모니터링 항목:")
+            for i, item in enumerate(monitored_items, 1):
+                print(f"{i}. {item.get('node_id')} (핸들: {item.get('handle')})")
+                print(f"   현재 샘플링 간격: {item.get('sampling_interval')}ms")
+        
         else:
             print("잘못된 수정 유형 선택입니다.")
             
@@ -1356,11 +1539,8 @@ async def recreate_subscriptions(client_connection, subscription_list):
     # 각 구독을 재생성
     for sub_info in backup_subscriptions:
         try:
-            # 구독 파라미터 가져오기
-            period = sub_info.get('publishing_interval', 500)
-            lifetime = sub_info.get('lifetime_count', 10)
-            keepalive = sub_info.get('max_keep_alive_count', 3)
-            priority = sub_info.get('priority', 0)
+            # 구독 파라미터 가져오기 - 헬퍼 함수 사용으로 중복 제거
+            period, lifetime, keepalive, priority = get_fallback_parameters(sub_info)
             
             # 새 구독 생성
             new_sub = await subscription.create_subscription(
@@ -1464,34 +1644,76 @@ async def enter_monitoring_mode(client_connection, subscription_list):
         else:
             return subscription_list
     
-    # 모니터링 항목 확인
+    # 모니터링 항목 확인 (데이터 변경 구독만)
     has_monitored_items = False
+    total_data_items = 0
+    
     for sub_info in subscription_list:
-        if len(sub_info.get("monitored_items", [])) > 0:
+        # 데이터 변경 모니터링 항목 확인
+        data_items = sub_info.get("monitored_items", [])
+        for item in data_items:
+            total_data_items += 1
             has_monitored_items = True
-            break
     
     if not has_monitored_items:
-        print("\n모니터링할 항목이 없습니다. 먼저 구독에 모니터링 항목을 추가하세요.")
-        add_item = input("지금 모니터링 항목을 추가하시겠습니까? (y/n): ").lower() == 'y'
-        if add_item:
+        print("\n모니터링할 데이터 항목이 없습니다.")
+        print("데이터 변경 모니터링 항목을 추가하세요.")
+        print("(이벤트 모니터링은 메뉴 15번 'Event View'를 사용하세요)")
+        
+        choice = input("\n데이터 모니터링 항목을 추가하시겠습니까? (y/n): ")
+        
+        if choice.lower() == "y":
             await add_monitored_item(client_connection, subscription_list)
-            # 다시 확인
-            has_monitored_items = False
-            for sub_info in subscription_list:
-                if len(sub_info.get("monitored_items", [])) > 0:
-                    has_monitored_items = True
-                    break
+        else:
+            return subscription_list
             
-            if not has_monitored_items:
-                print("모니터링 항목이 추가되지 않았습니다. 모니터링 모드를 종료합니다.")
-                return subscription_list
+        # 다시 확인
+        has_monitored_items = False
+        total_data_items = 0
+        
+        for sub_info in subscription_list:
+            data_items = sub_info.get("monitored_items", [])
+            for item in data_items:
+                total_data_items += 1
+                has_monitored_items = True
+        
+        if not has_monitored_items:
+            print("모니터링 항목이 추가되지 않았습니다. 모니터링 모드를 종료합니다.")
+            return subscription_list
     
     print("\n===== 모니터링 모드 시작 =====")
     print("'q' 또는 'exit'를 입력하여 종료")
     
+    # 모니터링 상태 상세 표시
+    print(f"\n모니터링 현황:")
+    print(f"  활성 구독: {len(subscription_list)}개")
+    print(f"  데이터 모니터링: {total_data_items}개")
+    
+    for i, sub_info in enumerate(subscription_list, 1):
+        pub_interval = sub_info.get('publishing_interval', DEFAULT_PUBLISHING_INTERVAL)
+        keep_alive_count = sub_info.get('max_keep_alive_count', DEFAULT_MAX_KEEP_ALIVE_COUNT)
+        keep_alive_interval = (pub_interval * keep_alive_count) / 1000
+        
+        data_count = len(sub_info.get("monitored_items", []))
+        
+        print(f"\n구독 {i} (ID: {sub_info['id']}):")
+        print(f"  Publishing Interval: {pub_interval}ms")
+        print(f"  Keep-Alive 간격: {keep_alive_interval:.1f}초")
+        print(f"  항목: 데이터 {data_count}개")
+        
+        # 각 항목 상세 표시 (간략하게)
+        if data_count > 0:
+            for item in sub_info.get("monitored_items", []):
+                node_id = item.get('node_id', 'Unknown')
+                print(f"    Data: {node_id}")
+    
+    print(f"\n백그라운드 모니터링 시작...")
+    if total_data_items > 0:
+        print("  데이터 변경사항 실시간 표시")
+    
     # 모니터링 상태 플래그
     monitoring_active = True
+    start_time = asyncio.get_event_loop().time()
     
     # 키보드 입력 확인 태스크
     async def check_exit_command():
@@ -1624,6 +1846,289 @@ async def list_endpoints():
     except Exception as e:
         logger.error(f"엔드포인트 조회 중 오류 발생: {e}")
         print(f"엔드포인트를 가져오는 중 오류가 발생했습니다: {e}")
+async def enter_event_view(client_connection):
+    """
+    이벤트 전용 뷰에 진입합니다.
+    이벤트만을 위한 별도의 구독을 생성하고 실시간 모니터링을 제공합니다.
+    """
+    if not client_connection:
+        print("서버에 연결되어 있지 않습니다. 먼저 서버에 연결하세요.")
+        return
+    
+    print("\n===== Event View (이벤트 전용 뷰) =====")
+    print("이벤트 전용 구독을 생성하여 실시간 이벤트를 모니터링합니다.")    
+    
+    # 기존 구독들 일시 정지 (이벤트 뷰 동안 데이터 변경 출력 방지)
+    global current_session_id, subscription_lists
+    existing_subscriptions = []
+    if current_session_id and current_session_id in subscription_lists:
+        print("기존 데이터 구독을 일시 정지합니다...")
+        for sub_info in subscription_lists[current_session_id]:
+            try:
+                await subscription.set_publishing_mode(sub_info['subscription'], False)
+                existing_subscriptions.append(sub_info)
+                print(f"구독 {sub_info['id']} 일시 정지됨")
+            except Exception as e:
+                print(f"구독 {sub_info['id']} 정지 실패: {e}")
+    
+    # 이벤트 전용 핸들러 클래스
+    class EventViewHandler:
+        def __init__(self):
+            self.event_count = 0
+            self.start_time = time.time()
+            
+        async def event_notification(self, event):
+            """이벤트 알림 처리 - 실시간 표시"""
+            self.event_count += 1
+            current_time = time.strftime("%H:%M:%S.%f")[:-3]
+            
+            print(f"\n[{current_time}] Event #{self.event_count}")
+            print("=" * 50)
+            
+            try:
+                # 이벤트 필드 표시
+                if hasattr(event, '__dict__'):
+                    for field_name, field_value in event.__dict__.items():
+                        if not field_name.startswith('_'):
+                            # 중요한 필드 강조
+                            if field_name in ['EventType', 'SourceName', 'Message', 'Severity', 'Time']:
+                                print(f"  ★ {field_name}: {field_value}")
+                            else:
+                                value_str = str(field_value)
+                                if len(value_str) > 60:
+                                    value_str = f"{value_str[:60]}..."
+                                print(f"    {field_name}: {value_str}")
+                else:
+                    print(f"  Event Data: {event}")
+                    
+            except Exception as e:
+                print(f"  오류: 이벤트 처리 중 문제 발생 - {e}")
+            
+            print("=" * 50)
+        
+        async def datachange_notification(self, node, val, data):
+            """데이터 변경 알림 (이벤트 뷰에서는 무시)"""
+            # Event View에서는 데이터 변경을 처리하지 않음
+            pass
+        
+        async def status_change_notification(self, status):
+            """구독 상태 변경 알림"""
+            current_time = time.strftime("%H:%M:%S")
+            print(f"[{current_time}] 구독 상태 변경: {status}")
+    
+    # 이벤트 핸들러 생성
+    event_handler = EventViewHandler()
+    
+    try:
+        # 이벤트 전용 구독 생성
+        print("\n이벤트 전용 구독을 생성하는 중...")
+        
+        event_subscription = await subscription.create_subscription(
+            client_connection,
+            period=1000,  # 더 짧은 간격으로 수정
+            lifetime_count=3600,  # 더 짧은 lifetime
+            max_keep_alive_count=12,  # 더 짧은 keep-alive
+            priority=0,
+            handler=event_handler  # 이벤트 핸들러 전달
+        )
+        
+        print(f"이벤트 전용 구독 생성 완료! ID: {event_subscription.subscription_id}")
+        
+        # Keep-Alive PublishRequest 강제 활성화 시도
+        print("\nKeep-Alive PublishRequest 활성화 시도 중...")
+        try:
+            # 이벤트 구독만으로 Keep-Alive가 발생하는지 확인
+            # asyncua의 내부 구현을 확인하여 PublishRequest 강제 시작
+            if hasattr(event_subscription, 'server') and hasattr(event_subscription.server, '_publish_task'):
+                # 이미 publish task가 있는지 확인
+                if event_subscription.server._publish_task and not event_subscription.server._publish_task.done():
+                    print("PublishRequest 태스크가 이미 실행 중입니다.")
+                else:
+                    # PublishRequest 태스크 수동 시작 시도
+                    print("PublishRequest 태스크를 수동으로 시작합니다.")
+                    # 이것은 python-opcua 내부 API이므로 작동하지 않을 수 있음
+
+        except Exception as keep_alive_err:
+            print(f"Keep-Alive 활성화 시도 실패: {keep_alive_err}")
+            print("이벤트 구독만으로 Keep-Alive PublishRequest가 발생하지 않을 수 있습니다.")
+        
+        # 서버가 수정한 실제 값들 표시
+        try:
+            # 구독 파라미터에서 실제 값 확인
+            if hasattr(event_subscription, 'parameters'):
+                params = event_subscription.parameters
+                actual_interval = getattr(params, 'RevisedPublishingInterval', 1000)
+                actual_lifetime = getattr(params, 'RevisedLifetimeCount', 3600)
+                actual_keepalive = getattr(params, 'RevisedMaxKeepAliveCount', 20)
+                
+                print(f"서버 수정 파라미터:")
+                print(f"  Publishing Interval: {actual_interval}ms")
+                print(f"  Lifetime Count: {actual_lifetime}")
+                print(f"  Keep-Alive Count: {actual_keepalive}")
+                
+                # 실제 Keep-Alive 간격 계산
+                keepalive_interval = (actual_interval * actual_keepalive) / 1000
+                print(f"  실제 Keep-Alive 간격: {keepalive_interval:.1f}초")
+                
+                if keepalive_interval > 10:
+                    print(f"   Keep-Alive 간격이 너무 깁니다 ({keepalive_interval:.1f}초)")
+                    print(f"     PublishRequest 빈도가 낮을 수 있습니다.")
+        except Exception as param_err:
+            print(f"파라미터 정보 확인 실패: {param_err}")
+        
+        # 이벤트 소스와 타입 선택
+        print("\n이벤트 구독 설정:")
+        print("1. Server 노드 - BaseEventType (기본)")
+        print("2. Server 노드 - SystemEventType")
+        print("3. Objects 노드 - BaseEventType")
+        print("4. 사용자 정의")
+        
+        choice = input("선택 [1]: ") or "1"
+        
+        if choice == "1":
+            source_node_id = "i=2253"  # Server
+            event_type_id = "i=2041"   # BaseEventType
+            config_name = "Server → BaseEventType"
+        elif choice == "2":
+            source_node_id = "i=2253"  # Server
+            event_type_id = "i=2130"   # SystemEventType
+            config_name = "Server → SystemEventType"
+        elif choice == "3":
+            source_node_id = "i=85"    # Objects
+            event_type_id = "i=2041"   # BaseEventType
+            config_name = "Objects → BaseEventType"
+        elif choice == "4":
+            source_node_id = input("이벤트 소스 노드 ID: ")
+            event_type_id = input("이벤트 타입 노드 ID: ")
+            config_name = f"Custom: {source_node_id} → {event_type_id}"
+        else:
+            source_node_id = "i=2253"
+            event_type_id = "i=2041"
+            config_name = "Server → BaseEventType"
+        
+        # 이벤트 구독 생성
+        print(f"\n이벤트 구독 생성 중: {config_name}")
+        
+        source_node = client_connection.get_node(source_node_id)
+        event_type_node = client_connection.get_node(event_type_id)
+        
+        handle = await event_subscription.subscribe_events(
+            sourcenode=source_node,
+            evtypes=event_type_node,
+            queuesize=10
+        )
+        
+        print(f"이벤트 구독 성공 핸들: {handle}")
+        print(f"구성: {config_name}")
+        
+        print("\n===== 실시간 이벤트 모니터링 시작 =====")
+        print("'q' 또는 'exit'를 입력하여 종료")
+        print("=" * 55)
+        
+        # 실시간 모니터링 시작
+        monitoring_active = True
+        start_time = time.time()
+        
+        # 키보드 입력 확인 태스크
+        async def check_exit_command():
+            nonlocal monitoring_active
+            while monitoring_active:
+                try:
+                    exit_command = await asyncio.to_thread(input, "")
+                    if exit_command.lower() in ['q', 'exit', 'quit']:
+                        print("\nEvent View 종료 중...")
+                        monitoring_active = False
+                        return
+                except:
+                    pass
+                await asyncio.sleep(0.1)
+        
+        # 상태 표시 태스크
+        async def show_status():
+            nonlocal monitoring_active
+            last_event_count = 0
+            
+            while monitoring_active:
+                await asyncio.sleep(10)  # 10초마다 상태 표시
+                if monitoring_active:
+                    elapsed = time.time() - start_time
+                    new_events = event_handler.event_count - last_event_count
+                    last_event_count = event_handler.event_count
+                    
+                    print(f"\n[상태] 경과 시간: {elapsed:.0f}초, "
+                          f"총 이벤트: {event_handler.event_count}개, "
+                          f"최근 10초: {new_events}개")
+        
+        # 태스크 시작
+        input_task = asyncio.create_task(check_exit_command())
+        status_task = asyncio.create_task(show_status())
+        
+        try:
+            # 모니터링 유지
+            while monitoring_active:
+                await asyncio.sleep(1)
+        except KeyboardInterrupt:
+            print("\nCtrl+C 감지됨. Event View 종료 중...")
+        finally:
+            # 태스크 정리
+            if not input_task.done():
+                input_task.cancel()
+            if not status_task.done():
+                status_task.cancel()
+            
+            try:
+                await input_task
+            except asyncio.CancelledError:
+                pass
+            
+            try:
+                await status_task
+            except asyncio.CancelledError:
+                pass
+            
+            # 구독 정리
+            try:
+                await subscription.delete_subscription(event_subscription)
+                print("이벤트 구독이 정리되었습니다.")
+            except Exception as cleanup_err:
+                print(f"구독 정리 중 오류: {cleanup_err}")
+            
+            # 기존 구독들 재개
+            if existing_subscriptions:
+                print("기존 데이터 구독을 재개합니다...")
+                for sub_info in existing_subscriptions:
+                    try:
+                        await subscription.set_publishing_mode(sub_info['subscription'], True)
+                        print(f"구독 {sub_info['id']} 재개됨")
+                    except Exception as e:
+                        print(f"구독 {sub_info['id']} 재개 실패: {e}")
+        
+        print("\n===== Event View 종료 =====")
+        
+        # 요약 정보
+        elapsed_total = time.time() - start_time
+        print(f"총 모니터링 시간: {elapsed_total:.1f}초")
+        print(f"총 수신 이벤트: {event_handler.event_count}개")
+        if elapsed_total > 0:
+            rate = event_handler.event_count / elapsed_total * 60
+            print(f"평균 이벤트 발생률: {rate:.2f}개/분")
+        
+    except Exception as e:
+        logger.error(f"Event View 실행 중 오류: {e}")
+        print(f"Event View 실행 중 오류가 발생했습니다: {e}")
+        
+        # 오류 해결 방법 제시
+        if "BadNodeIdUnknown" in str(e):
+            print("해결 방법: 노드 ID가 존재하지 않습니다. 다른 노드를 시도해보세요.")
+        elif "BadEventFilterInvalid" in str(e):
+            print("해결 방법: 이벤트 필터가 유효하지 않습니다. 다른 이벤트 타입을 시도해보세요.")
+        elif "BadServiceUnsupported" in str(e):
+            print("해결 방법: 서버가 이벤트 구독을 지원하지 않습니다.")
+        else:
+            print("일반적인 해결 방법:")
+            print("1. 서버 연결 상태 확인")
+            print("2. 서버가 이벤트를 지원하는지 확인")
+            print("3. 다른 이벤트 소스/타입 시도")
 
 async def main():
     global session_manager, current_session_id, subscription_lists
@@ -1774,6 +2279,12 @@ async def main():
                         else:
                             print("No subscriptions in current session")
                     
+                elif choice == '15':  # Event View (이벤트 전용 뷰)
+                    client_connection, reconnected = await check_and_reconnect()
+                    if client_connection:
+                        # Event View는 독립적으로 실행되므로 기존 구독과 별개로 처리
+                        await enter_event_view(client_connection)
+                
                 else:
                     print("\nInvalid choice. Please try again.")
                     

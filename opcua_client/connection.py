@@ -23,7 +23,7 @@ _keep_alive_tasks = {}
 async def _keep_alive_worker(client: Client, interval: float = 3.0):
     """
     클라이언트 연결을 유지하기 위한 백그라운드 작업입니다.
-    주기적으로 서버에 요청을 보내 연결이 유지되도록 합니다.
+    순수한 연결 상태 확인만 수행하여 추가 데이터 발행 없이 Keep-Alive를 제공합니다.
     
     Args:
         client: OPC UA 클라이언트 인스턴스
@@ -34,15 +34,12 @@ async def _keep_alive_worker(client: Client, interval: float = 3.0):
     last_success_time = time.time()
     
     try:
-        logger.info(f"연결 유지(keep-alive) 태스크 시작, 간격: {interval}초")
+        logger.info(f"순수 Keep-Alive 태스크 시작, 간격: {interval}초 (데이터 발행 없음)")
         while True:
             current_time = time.time()
             try:
-                # 서버 시간 노드 ID (모든 OPC UA 서버에서 지원)
-                time_node = client.get_node("ns=0;i=2258")
-                # 노드 값을 읽어 연결 유지
-                await time_node.read_value()
-                logger.debug("Keep-alive 요청 성공")
+                # 순수한 연결 상태 확인 - 데이터 노드를 읽지 않음
+                await client.get_namespace_array()
                 
                 # 성공한 경우 재시도 카운터 초기화
                 reconnect_attempts = 0
@@ -50,9 +47,7 @@ async def _keep_alive_worker(client: Client, interval: float = 3.0):
                 
             except Exception as e:
                 # 마지막 성공으로부터 경과한 시간 확인
-                elapsed = current_time - last_success_time
-                logger.warning(f"Keep-alive 요청 실패 (마지막 성공으로부터 {elapsed:.1f}초): {e}")
-                
+                elapsed = current_time - last_success_time                
                 # 연결이 끊어졌을 때 재연결 시도
                 reconnect_attempts += 1
                 
@@ -70,7 +65,7 @@ async def _keep_alive_worker(client: Client, interval: float = 3.0):
                         await asyncio.sleep(0.5)  # 잠시 대기 후 재연결
                         await client.connect()
                         
-                        # 연결 확인
+                        # 연결 확인 (순수 메타데이터 확인)
                         await client.get_namespace_array()
                         logger.info("재연결 성공")
                         
@@ -89,9 +84,9 @@ async def _keep_alive_worker(client: Client, interval: float = 3.0):
             # 다음 keep-alive 주기까지 대기
             await asyncio.sleep(interval)
     except asyncio.CancelledError:
-        logger.info("연결 유지(keep-alive) 태스크가 취소되었습니다.")
+        logger.info("순수 Keep-Alive 태스크가 취소되었습니다.")
     except Exception as e:
-        logger.error(f"연결 유지(keep-alive) 태스크 오류: {e}")
+        logger.error(f"순수 Keep-Alive 태스크 오류: {e}")
         # 예외 전파하지 않고 로깅만 수행
 
 
