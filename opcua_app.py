@@ -790,7 +790,11 @@ async def call_method(client_connection):
             for i, out in enumerate(result, 1):
                 print(f"{i}. {out.get('Name')}: {out.get('Value')} ({out.get('DataType')})")
         else:
-            print(f"\nMethod result: {result}")
+            # None 결과를 success로 표시 (출력 인수가 없는 메서드의 성공적 실행)
+            if result is None:
+                print(f"\nMethod result: success")
+            else:
+                print(f"\nMethod result: {result}")
             
     except Exception as e:
         logger.error(f"Failed to call method: {e}")

@@ -304,12 +304,16 @@ async def call_method_with_typed_params(
             elif "Int" in data_type and not isinstance(value, int):
                 converted_value = int(value)
                 
-            elif "Double" in data_type or "Float" in data_type and not isinstance(value, float):
+            elif ("Double" in data_type or "Float" in data_type) and not isinstance(value, float):
                 converted_value = float(value)
-                
+                # For OPC UA Double type, ensure proper precision
+                if "Double" in data_type:
+                    converted_value = ua.Variant(converted_value, ua.VariantType.Double)
+                    
             elif "String" in data_type and not isinstance(value, str):
                 converted_value = str(value)
             
+            # If we haven't created a Variant yet, do it now
             converted_args.append(converted_value)
         
         # Call the method with converted arguments
@@ -330,6 +334,8 @@ async def call_method_with_typed_params(
                     })
                 return formatted_result
         
+        # 출력 인수가 없는 메서드의 성공적 실행을 위해 None을 그대로 반환
+        # (opcua_app.py에서 None을 "success"로 표시)
         return result
     except Exception as e:
         logger.error(f"Failed to call method with typed parameters: {e}")
