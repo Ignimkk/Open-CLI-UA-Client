@@ -295,177 +295,77 @@ async def get_node_info(client_connection):
         detailed = input("Get detailed attributes? (y/n): ").lower() == 'y'
         
         if detailed:
-            # 기본 노드 정보 출력
+            print("\n=== 노드 속성 상세 정보 (단일 Read Request 사용) ===")
+            
+            # 수정된 get_all_node_attributes 함수 사용 - 단일 Read Request/Response
             try:
-                node_obj = client_connection.get_node(node_id)
-                display_name = await node_obj.read_display_name()
-                print(f"{display_name.Text}: {await node_obj.read_value()}")
-            except Exception as e:
-                logger.debug(f"기본 정보 표시 오류: {e}")
-            
-            print("\n=== 노드 속성 상세 정보 ===")
-            
-            # 계층적으로 표시할 속성 그룹 정의
-            node_obj = client_connection.get_node(node_id)
-            
-            # 기본 정보 그룹
-            print("▶ NodeId")
-            node_id_obj = node_obj.nodeid
-            try:
-                print(f"  NamespaceIndex: {node_id_obj.NamespaceIndex}")
-                print(f"  IdentifierType: {node_id_obj.NodeIdType.name}")
-                print(f"  Identifier: {node_id_obj.Identifier}")
-            except Exception as e:
-                logger.debug(f"NodeId 정보 표시 오류: {e}")
-                print(f"  {node_id_obj}")
-            
-            # 노드 클래스 정보
-            try:
-                node_class = await node_obj.read_node_class()
-                print(f"▶ NodeClass: {node_class.name}")
-            except Exception as e:
-                logger.debug(f"NodeClass 정보 표시 오류: {e}")
-            
-            # 이름 정보
-            try:
-                browse_name = await node_obj.read_browse_name()
-                display_name = await node_obj.read_display_name()
-                print(f"▶ BrowseName: {browse_name.Name}")
-                print(f"▶ DisplayName: {display_name.Text}")
-            except Exception as e:
-                logger.debug(f"이름 정보 표시 오류: {e}")
-            
-            # 설명 정보
-            try:
-                description = await node_obj.read_description()
-                if description and description.Text:
-                    print(f"▶ Description: {description.Text}")
+                all_attributes = await node.get_all_node_attributes(client_connection, node_id)
+                
+                if not all_attributes:
+                    print("노드 속성을 가져올 수 없습니다.")
+                    return
+                
+                # 속성을 카테고리별로 그룹화하여 표시
+                print(f"▶ 노드 ID: {all_attributes.get('NodeId', 'Unknown')}")
+                print(f"▶ 노드 클래스: {all_attributes.get('NodeClass', 'Unknown')}")
+                print(f"▶ 브라우즈 이름: {all_attributes.get('BrowseName', 'Unknown')}")
+                print(f"▶ 표시 이름: {all_attributes.get('DisplayName', 'Unknown')}")
+                
+                if 'Description' in all_attributes and all_attributes['Description']:
+                    print(f"▶ 설명: {all_attributes['Description']}")
                 else:
-                    print("▶ Description: [없음]")
-            except Exception as e:
-                logger.debug(f"설명 정보 표시 오류: {e}")
-                print("▶ Description: [오류]")
-            
-            # 값 그룹
-            print("▶ Value")
-            try:
-                value = await node_obj.read_value()
-                status_code = "Good"
-                server_timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    print("▶ 설명: [없음]")
                 
-                # 서버 타임스탬프 가져오기 시도
+                # 값 정보
+                if 'Value' in all_attributes:
+                    print(f"▶ 값: {all_attributes['Value']}")
+                
+                # 데이터 타입 정보
+                if 'DataType' in all_attributes:
+                    print(f"▶ 데이터 타입 ID: {all_attributes['DataType']}")
+                    if 'DataTypeName' in all_attributes:
+                        print(f"▶ 데이터 타입 이름: {all_attributes['DataTypeName']}")
+                
+                # 접근 수준
+                if 'AccessLevel' in all_attributes:
+                    print(f"▶ 접근 수준: {all_attributes['AccessLevel']}")
+                if 'UserAccessLevel' in all_attributes:
+                    print(f"▶ 사용자 접근 수준: {all_attributes['UserAccessLevel']}")
+                
+                # 배열 정보
+                if 'ValueRank' in all_attributes:
+                    print(f"▶ 값 순위: {all_attributes['ValueRank']}")
+                if 'ArrayDimensions' in all_attributes:
+                    print(f"▶ 배열 차원: {all_attributes['ArrayDimensions']}")
+                
+                # 기타 속성들
+                other_attributes = [
+                    'WriteMask', 'UserWriteMask', 'MinimumSamplingInterval', 
+                    'Historizing', 'Executable', 'UserExecutable', 'EventNotifier',
+                    'IsAbstract', 'TypeDefinition', 'TypeName', 'ReferenceCount'
+                ]
+                
+                print("\n▶ 기타 속성:")
+                for attr in other_attributes:
+                    if attr in all_attributes and all_attributes[attr] is not None:
+                        print(f"  {attr}: {all_attributes[attr]}")
+                                
+            except Exception as detailed_err:
+                logger.error(f"상세 속성 조회 실패: {detailed_err}")
+                print(f"상세 속성 조회 중 오류가 발생했습니다: {detailed_err}")
+                
+                # 폴백으로 기본 정보 조회
+                print("\n기본 정보로 폴백합니다...")
                 try:
-                    data_value = await node_obj.read_data_value()
-                    if hasattr(data_value, 'ServerTimestamp'):
-                        server_timestamp = data_value.ServerTimestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                    if hasattr(data_value, 'StatusCode'):
-                        status_code = str(data_value.StatusCode)
-                except Exception as ts_err:
-                    logger.debug(f"타임스탬프 정보 표시 오류: {ts_err}")
-                
-                print(f"  ServerTimestamp: {server_timestamp}")
-                print(f"  StatusCode: {status_code}")
-                print(f"  Value: {value}")
-            except Exception as e:
-                logger.debug(f"값 정보 표시 오류: {e}")
-                print("  [값을 읽을 수 없음]")
-            
-            # 데이터 타입 그룹
-            print("▶ DataType")
-            try:
-                data_type_id = await node_obj.read_data_type()
-                data_type_node = client_connection.get_node(data_type_id)
-                data_type_name = await data_type_node.read_browse_name()
-                
-                print(f"  NamespaceIndex: {data_type_id.NamespaceIndex}")
-                print(f"  IdentifierType: {data_type_id.NodeIdType.name}")
-                print(f"  Identifier: {data_type_id.Identifier}")
-                print(f"  Name: {data_type_name.Name}")
-            except Exception as e:
-                logger.debug(f"데이터 타입 정보 표시 오류: {e}")
-                print("  [데이터 타입을 읽을 수 없음]")
-            
-            # 값 순위 및 배열 차원 정보
-            try:
-                value_rank = await node_obj.read_value_rank()
-                print(f"▶ ValueRank: {value_rank}")
-                if value_rank >= 0:
-                    try:
-                        dimensions = await node_obj.read_array_dimensions()
-                        print(f"▶ ArrayDimensions: {dimensions if dimensions else 'Null'}")
-                    except Exception as dim_err:
-                        logger.debug(f"배열 차원 정보 표시 오류: {dim_err}")
-                        print("▶ ArrayDimensions: [읽을 수 없음]")
-                else:
-                    print("▶ ArrayDimensions: Null")
-            except Exception as e:
-                logger.debug(f"값 순위 정보 표시 오류: {e}")
-            
-            # 접근 수준 정보
-            try:
-                access_level = await node_obj.read_attribute(ua.AttributeIds.AccessLevel)
-                access_level_value = access_level.Value.Value
-                access_strs = []
-                
-                if access_level_value & ua.AccessLevel.CurrentRead:
-                    access_strs.append("CurrentRead")
-                if access_level_value & ua.AccessLevel.CurrentWrite:
-                    access_strs.append("CurrentWrite")
-                if access_level_value & ua.AccessLevel.HistoryRead:
-                    access_strs.append("HistoryRead")
-                if access_level_value & ua.AccessLevel.HistoryWrite:
-                    access_strs.append("HistoryWrite")
-                
-                print(f"▶ AccessLevel: {', '.join(access_strs)}")
-                
-                # 사용자 접근 수준도 표시
-                try:
-                    user_access = await node_obj.read_attribute(ua.AttributeIds.UserAccessLevel)
-                    user_access_value = user_access.Value.Value
-                    user_access_strs = []
-                    
-                    if user_access_value & ua.AccessLevel.CurrentRead:
-                        user_access_strs.append("CurrentRead")
-                    if user_access_value & ua.AccessLevel.CurrentWrite:
-                        user_access_strs.append("CurrentWrite")
-                    if user_access_value & ua.AccessLevel.HistoryRead:
-                        user_access_strs.append("HistoryRead")
-                    if user_access_value & ua.AccessLevel.HistoryWrite:
-                        user_access_strs.append("HistoryWrite")
-                    
-                    print(f"▶ UserAccessLevel: {', '.join(user_access_strs)}")
-                except Exception as user_err:
-                    logger.debug(f"사용자 접근 수준 정보 표시 오류: {user_err}")
-            except Exception as e:
-                logger.debug(f"접근 수준 정보 표시 오류: {e}")
-            
-            # 히스토리 및 기타 정보
-            try:
-                min_sampling = await node_obj.read_attribute(ua.AttributeIds.MinimumSamplingInterval)
-                if not min_sampling.Value.is_empty():
-                    print(f"▶ MinimumSamplingInterval: {min_sampling.Value.Value}")
-                
-                historizing = await node_obj.read_attribute(ua.AttributeIds.Historizing)
-                if not historizing.Value.is_empty():
-                    print(f"▶ Historizing: {historizing.Value.Value}")
-            except Exception as e:
-                logger.debug(f"추가 정보 표시 오류: {e}")
-            
-            # 참조 정보 표시
-            try:
-                references = await node_obj.get_references()
-                print(f"▶ References: {len(references)}개")
-                
-                # 타입 정의 참조 찾기
-                type_refs = [ref for ref in references if ref.ReferenceTypeId == ua.ObjectIds.HasTypeDefinition]
-                if type_refs:
-                    type_def = type_refs[0].NodeId
-                    type_node = client_connection.get_node(type_def)
-                    type_name = await type_node.read_browse_name()
-                    print(f"▶ TypeDefinition: {type_name.Name} ({type_def})")
-            except Exception as e:
-                logger.debug(f"참조 정보 표시 오류: {e}")
-            
+                    info = await node.get_node_info(client_connection, node_id)
+                    print("\nNode Information:")
+                    for key, value in info.items():
+                        value_str = str(value)
+                        if len(value_str) > 100:
+                            value_str = f"{value_str[:100]}... [내용 생략]"
+                        print(f"{key}: {value_str}")
+                except Exception as fallback_err:
+                    print(f"기본 정보 조회도 실패했습니다: {fallback_err}")
         else:
             # 기본 노드 정보만 조회
             info = await node.get_node_info(client_connection, node_id)

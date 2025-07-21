@@ -260,73 +260,147 @@ async def get_all_node_attributes(client: Client, node_id: str) -> Dict[str, Any
         ua.AttributeIds.IsAbstract: "IsAbstract"
     }
     
-    # 중요 속성 먼저 가져오기 시도 (표시 이름, 값, 데이터 타입)
-    important_attrs = [
-        ua.AttributeIds.BrowseName,
-        ua.AttributeIds.DisplayName,
-        ua.AttributeIds.Value,
-        ua.AttributeIds.DataType,
-        ua.AttributeIds.NodeClass
-    ]
+    # 모든 속성을 한 번에 읽기 위한 준비
+    try:
+        # 한 번에 모든 속성 읽기 - 단일 Read Request/Response
+        # GitHub 공식 레포지토리 방법 사용: node.read_attributes()
+        attr_list = list(attr_dict.keys())
+        
+        logger.info(f"Reading {len(attr_list)} attributes with single request using read_attributes()")
+        
+        # 단일 Read Request로 모든 속성 읽기
+        results = await node.read_attributes(attr_list)
+        
+        logger.info(f"Single read request successful - got {len(results)} results")
+        
+        # 결과 처리 - GitHub 레포지토리 방법 참고
+        for i, attr_id in enumerate(attr_list):
+            if i < len(results):
+                result = results[i]
+                attr_name = attr_dict[attr_id]
+                
+                # StatusCode 확인 - GitHub 방법
+                if result.StatusCode.is_good():
+                    try:
+                        # Value 접근 - GitHub 방법
+                        if result.Value is None:
+                            logger.debug(f"Attribute {attr_name} has None value")
+                            continue
+                            
+                        # 속성 타입에 따른 가공
+                        if attr_id == ua.AttributeIds.NodeClass:
+                            attributes[attr_name] = ua.NodeClass(result.Value.Value).name
+                        elif attr_id == ua.AttributeIds.BrowseName:
+                            attributes[attr_name] = result.Value.Value.Name
+                        elif attr_id == ua.AttributeIds.DisplayName:
+                            attributes[attr_name] = result.Value.Value.Text
+                        elif attr_id == ua.AttributeIds.Value:
+                            attributes[attr_name] = result.Value.Value
+                        elif attr_id == ua.AttributeIds.DataType:
+                            attributes[attr_name] = result.Value.Value
+                            # 데이터 타입 이름 직접 조회
+                            try:
+                                data_type_id = result.Value.Value
+                                data_type_node = client.get_node(data_type_id)
+                                data_type_name = await data_type_node.read_browse_name()
+                                attributes["DataTypeName"] = data_type_name.Name
+                            except Exception as e:
+                                logger.debug(f"Failed to get DataTypeName: {e}")
+                        elif attr_id == ua.AttributeIds.AccessLevel or attr_id == ua.AttributeIds.UserAccessLevel:
+                            access_level = result.Value.Value
+                            access_texts = []
+                            if access_level & ua.AccessLevel.CurrentRead:
+                                access_texts.append("Read")
+                            if access_level & ua.AccessLevel.CurrentWrite:
+                                access_texts.append("Write")
+                            if access_level & ua.AccessLevel.HistoryRead:
+                                access_texts.append("HistoryRead")
+                            if access_level & ua.AccessLevel.HistoryWrite:
+                                access_texts.append("HistoryWrite")
+                            if access_level & ua.AccessLevel.SemanticChange:
+                                access_texts.append("SemanticChange")
+                            attributes[attr_name] = ", ".join(access_texts) if access_texts else "None"
+                        else:
+                            attributes[attr_name] = result.Value.Value
+                    except Exception as e:
+                        logger.debug(f"Failed to process attribute {attr_name}: {e}")
+                else:
+                    logger.debug(f"Attribute {attr_name} returned bad status: {result.StatusCode}")
+        
+        logger.info(f"Successfully read {len(attributes)} attributes using single read_attributes() request")
     
-    for attr_id in important_attrs:
-        attr_name = attr_dict.get(attr_id)
-        if attr_name:
+    except Exception as e:
+        logger.error(f"Failed to read attributes with single request: {e}")
+        # 단일 요청 실패 시 개별 요청으로 폴백 (호환성 보장)
+        logger.info("Falling back to individual attribute reads")
+        
+        # 중요 속성 먼저 가져오기 시도 (표시 이름, 값, 데이터 타입)
+        important_attrs = [
+            ua.AttributeIds.BrowseName,
+            ua.AttributeIds.DisplayName,
+            ua.AttributeIds.Value,
+            ua.AttributeIds.DataType,
+            ua.AttributeIds.NodeClass
+        ]
+        
+        for attr_id in important_attrs:
+            attr_name = attr_dict.get(attr_id)
+            if attr_name:
+                try:
+                    value = await node.read_attribute(attr_id)
+                    if not value.Value.is_empty():
+                        if attr_id == ua.AttributeIds.NodeClass:
+                            attributes[attr_name] = ua.NodeClass(value.Value.Value).name
+                        elif attr_id == ua.AttributeIds.BrowseName:
+                            attributes[attr_name] = value.Value.Value.Name
+                        elif attr_id == ua.AttributeIds.DisplayName:
+                            attributes[attr_name] = value.Value.Value.Text
+                        elif attr_id == ua.AttributeIds.Value:
+                            attributes[attr_name] = value.Value.Value
+                        elif attr_id == ua.AttributeIds.DataType:
+                            attributes[attr_name] = value.Value.Value
+                            # 데이터 타입 이름 직접 조회
+                            try:
+                                data_type_id = value.Value.Value
+                                data_type_node = client.get_node(data_type_id)
+                                data_type_name = await data_type_node.read_browse_name()
+                                attributes["DataTypeName"] = data_type_name.Name
+                            except Exception as e:
+                                logger.debug(f"Failed to get DataTypeName: {e}")
+                except Exception as e:
+                    logger.debug(f"Failed to read important attribute {attr_name}: {e}")
+        
+        # 각 속성 읽기 시도 (중요하지 않은 나머지 속성들)
+        for attr_id, attr_name in attr_dict.items():
+            # 이미 처리한 중요 속성은 건너뛰기
+            if attr_id in important_attrs:
+                continue
+                
             try:
                 value = await node.read_attribute(attr_id)
+                
+                # 값이 비어있지 않은 경우만 처리
                 if not value.Value.is_empty():
-                    if attr_id == ua.AttributeIds.NodeClass:
-                        attributes[attr_name] = ua.NodeClass(value.Value.Value).name
-                    elif attr_id == ua.AttributeIds.BrowseName:
-                        attributes[attr_name] = value.Value.Value.Name
-                    elif attr_id == ua.AttributeIds.DisplayName:
-                        attributes[attr_name] = value.Value.Value.Text
-                    elif attr_id == ua.AttributeIds.Value:
+                    # 속성 타입에 따른 가공
+                    if attr_id == ua.AttributeIds.AccessLevel or attr_id == ua.AttributeIds.UserAccessLevel:
+                        access_level = value.Value.Value
+                        access_texts = []
+                        if access_level & ua.AccessLevel.CurrentRead:
+                            access_texts.append("Read")
+                        if access_level & ua.AccessLevel.CurrentWrite:
+                            access_texts.append("Write")
+                        if access_level & ua.AccessLevel.HistoryRead:
+                            access_texts.append("HistoryRead")
+                        if access_level & ua.AccessLevel.HistoryWrite:
+                            access_texts.append("HistoryWrite")
+                        if access_level & ua.AccessLevel.SemanticChange:
+                            access_texts.append("SemanticChange")
+                        attributes[attr_name] = ", ".join(access_texts) if access_texts else "None"
+                    else:
                         attributes[attr_name] = value.Value.Value
-                    elif attr_id == ua.AttributeIds.DataType:
-                        attributes[attr_name] = value.Value.Value
-                        # 데이터 타입 이름 직접 조회
-                        try:
-                            data_type_id = value.Value.Value
-                            data_type_node = client.get_node(data_type_id)
-                            data_type_name = await data_type_node.read_browse_name()
-                            attributes["DataTypeName"] = data_type_name.Name
-                        except Exception as e:
-                            logger.debug(f"Failed to get DataTypeName: {e}")
             except Exception as e:
-                logger.debug(f"Failed to read important attribute {attr_name}: {e}")
-    
-    # 각 속성 읽기 시도 (중요하지 않은 나머지 속성들)
-    for attr_id, attr_name in attr_dict.items():
-        # 이미 처리한 중요 속성은 건너뛰기
-        if attr_id in important_attrs:
-            continue
-            
-        try:
-            value = await node.read_attribute(attr_id)
-            
-            # 값이 비어있지 않은 경우만 처리
-            if not value.Value.is_empty():
-                # 속성 타입에 따른 가공
-                if attr_id == ua.AttributeIds.AccessLevel or attr_id == ua.AttributeIds.UserAccessLevel:
-                    access_level = value.Value.Value
-                    access_texts = []
-                    if access_level & ua.AccessLevel.CurrentRead:
-                        access_texts.append("Read")
-                    if access_level & ua.AccessLevel.CurrentWrite:
-                        access_texts.append("Write")
-                    if access_level & ua.AccessLevel.HistoryRead:
-                        access_texts.append("HistoryRead")
-                    if access_level & ua.AccessLevel.HistoryWrite:
-                        access_texts.append("HistoryWrite")
-                    if access_level & ua.AccessLevel.SemanticChange:
-                        access_texts.append("SemanticChange")
-                    attributes[attr_name] = ", ".join(access_texts) if access_texts else "None"
-                else:
-                    attributes[attr_name] = value.Value.Value
-        except Exception as e:
-            # 속성이 지원되지 않는 경우 무시하고 다음 속성으로 이동
-            logger.debug(f"Attribute {attr_name} not supported: {e}")
+                # 속성이 지원되지 않는 경우 무시하고 다음 속성으로 이동
+                logger.debug(f"Attribute {attr_name} not supported: {e}")
     
     # 추가 정보 가져오기 시도
     try:
